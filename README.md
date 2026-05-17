@@ -4,12 +4,12 @@
     <img src="example.png" alt="Visual mapping of VS Code to Roblox Explorer" width="100%">
 </div>
 
-## What is Rojen?
-Rojen is a command line tool that brings **feature-based architecture** to Roblox development for both luau and roblox-ts. 
+## What is Rogen?
+Rogen is a command line tool that brings **feature-based architecture** to Roblox development for both luau and roblox-ts. 
 
-Instead of separating your codebase in a `client`, `shared` and `server` folder at the root level, Rojen lets you group your code by domain and feature. You can keep your inventory UI, inventory server script, and inventory client script all inside a single, unified `Inventory` folder. This approach improves scalability, maintainability, and team collaboration.
+Instead of separating your codebase in a `client`, `shared` and `server` folder at the root level, Rogen lets you group your code by domain and feature. You can keep your inventory UI, inventory server script, and inventory client script all inside a single, unified `inventory` folder. This approach improves scalability, maintainability, and team collaboration.
 
-In the background, Rojen watches your file system and dynamically generates your `default.project.json` map for Rojo, ensuring your repository stays organized by feature while Roblox receives the exact service structure it expects. 
+In the background, Rogen watches your file system and dynamically generates your `default.project.json` map for Rojo, ensuring your repository stays organized by feature while Roblox receives the exact service structure it expects. 
 
 ## Automatic Routing
 Rogen determines a file's destination using three main strategies. Folder-based routing takes precedence over suffix-based routing.
@@ -28,7 +28,7 @@ If a file is in a generic folder, Rogen inspects the filename for a suffix. This
 * **PascalCase Suffixes:** Append the service name directly to the end of the filename.
     - Examples: `AuthServer.ts`, `InputClient.ts`, `DataShared.ts`
 
-    **Note:** Rogen strips the suffix for the final Rojo object name. `AuthServer.ts` becomes `Auth` in Roblox. This can be stopped by setting `suffixes: true` instead.
+    **Note:** Rogen strips the suffix for the final Rojo object name. `AuthServer.ts` becomes `Auth` in Roblox.
 
 ### 3. Default
 If neither matches, the file defaults to `ReplicatedStorage`.
@@ -37,21 +37,20 @@ If neither matches, the file defaults to `ReplicatedStorage`.
 Integrate Rogen into your workflow to ensure that your `default.project.json` stays synchronized with your file system.
 
 ### 1. Install Dependencies
-You will need a few development tools to handle the watching, routing, and concurrent execution for the commands:
+You will need a few development tools to handle the watching and concurrent execution for the commands:
 ```bash
 npm install -D chokidar-cli concurrently
 ```
-Also, save the `rogen.js` script into your project as `tools/rojen.js`.
+Also, save the `rogen.js` script into your project as `tools/rogen.js`.
 
-### 2. Configuration (default.rogen.json)
+### 2. Configuration (.rogen.json)
 Create a `.rogen.json` file in the root of your project. Rogen will automatically detect it and use that as the configuration.
 
-Here is the default configuration structure. You can add "project" to define your custom tree (e.g., adding pesde packages, mapping node_modules, or customizing specific services like SoundService).
+Here is a default configuration structure that works for both roblox-ts and luau, including darklua support. You may want to define a custom tree in "project" for things like adding pesde packages, mapping node_modules, or customizing specific services.
 
 ```json
 {
 	"sourceDir": "src",
-	"suffixes": false,
 	"luau": { 
 		"outFile": "default.project.json", 
 		"outDir": "src", 
@@ -101,25 +100,29 @@ Here is the default configuration structure. You can add "project" to define you
 | Property            | Description                                                                                                                                                                                                  |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | sourceDir           | The root directory where your uncompiled source code lives (usually "src").                                                                                                                                  |                     |
-| luau / ts / darklua | Mode-specific overrides. Rojen uses these to dictate where the compiled code ends up (outDir), the name of the generated Rojo file (outFile), and if the code should be nested in a parent folder (wrapper). |
-| project             | The base Rojo tree template. Any standard Rojo `default.project.json` fields (like `name`, `globIgnorePaths`, or a custom `tree`) placed here will be safely merged with Rojen's auto-generated paths. You can also specify a path to a JSON file with a Rojo tree!              |
+| luau / ts / darklua | Mode-specific overrides. Rogen uses these to dictate where the compiled code ends up (outDir), the name of the generated Rojo file (outFile), and if the code should be nested in a parent folder (wrapper). |
+| project             | The base Rojo tree template. Any standard Rojo `default.project.json` fields (like `name`, `globIgnorePaths`, or a custom `tree`) placed here will be safely merged with Rogen's auto-generated paths. You can also specify a path to a JSON file with a Rojo tree!              |
 
 ### 3. CLI Usage
-You can run the Rogen with optional arguments:
+You can run Rogen with optional arguments:
 
 - -c, --config <path>: Specify a custom config file path.
 
-- -m, --mode <mode>: Specify the mode to run (luau, ts, or darklua). If omitted, Rojen automatically detects your project type (via `tsconfig.json` or `.darklua.json`) and runs the appropriate mode(s).
+- -m, --mode <mode>: Specify the mode to run (luau, ts, or darklua). If omitted, Rogen automatically detects your project type (via `tsconfig.json` or `.darklua.json`) and runs the appropriate mode(s).
 
-- -p, --project <mode>: Specify a path to a JSON file with a Rojo project. If omitted, Rojen will use the the project specified in "project" in the `.rogen.json` file.
+- -p, --project <project>: Specify a path to a JSON file that contains a Rojo project. If omitted, Rogen will use the project specified in "project" in the `.rogen.json` file.
 
-Thus, if you just want to run darklua, do this:
+As an example, it is possible to have multiple Rogen config files, run a specific mode, and inject a specific Rojo project file. It would look something like this:
 ```bash
-npm rogen -c build.rogen.json -m darklua
+node tools/rogen.js -c build.rogen.json -m darklua -p build.project.json
+```
+Or, if you added the commands to `package.json`, you can do this:
+```bash
+npm run rogen -- -c build.rogen.json -m darklua -p build.project.json
 ```
 
 ### 4. Update Package Script
-Add the following scripts to your `Package.json` to automate rogen:
+Add the following scripts to your `package.json` to automate rogen:
 
 #### For luau
 ```json
