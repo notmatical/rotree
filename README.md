@@ -63,7 +63,8 @@ Here is a default configuration structure that works for both roblox-ts and luau
 	},
 	"darklua": { 
 		"outFile": "build.project.json", 
-		"outDir": "dist" 
+		"outDir": "dist",
+		"wrapper": false
 	},
 	"project": {
 		"name": "roblox-project",
