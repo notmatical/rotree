@@ -264,14 +264,17 @@ function resolveRoute(relativePath, isInit, { emitLegacyScripts, isTsProject, ou
 
 	// Suffix routing
 	if (sepMatch) {
-		mappedService = lowerServiceMap[sepMatch[1].toLowerCase()];
+		mappedService = lowerCaseServiceMap[sepMatch[1].toLowerCase()];
 		matchedSuffixLength = sepMatch[0].length;
+		if (!isInit) {
+			virtualParts.push(sepMatch[1]);
+		}
 	} else if (pascalMatch) {
 		mappedService = services[pascalMatch[1]];
 		matchedSuffixLength = pascalMatch[0].length;
-	}
-	if (mappedService && !lastRouteKeyword) {
-		targetService = mappedService;
+		if (!isInit) {
+			virtualParts.push(pascalMatch[1]);
+		}
 	}
 
 	// Scripts with non-legacy RunContext run incorrectly in StarterPlayer container.
