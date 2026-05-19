@@ -102,13 +102,33 @@ const pascalCaseRegex = new RegExp(`(${Object.keys(services).join("|")})$`);
 // CLI
 // -------------------------------
 
+function printHelp() {
+	console.log(`
+Rogen - A tool for feature-based folder structures with Rojo.
+
+Usage:
+  rogen [options]
+
+Options:
+  -h, --help             Show this help menu
+  -w, --watch            Watch the source directory for changes and regenerate automatically
+  -c, --config <path>    Specify a custom Rogen config file path
+  -m, --mode <mode>      Specify the mode to run (luau, ts, or darklua)
+  -s, --source <path>    Override the directory containing your uncompiled code
+  -t, --template <path>  Specify a path to a JSON file containing your base Rojo blueprint
+  -b, --build <path>     Override the directory where your compiled/transpiled code lands
+  -o, --output <path>    Override the name and destination of the final generated Rojo project file
+	`);
+}
+
 const options = {
 	config: { type: "string", short: "c" },
 	mode: { type: "string", short: "m" },
 	source: { type: "string", short: "s" },
 	template: { type: "string", short: "t" },
 	output: { type: "string", short: "o" },
-	build: { type: "string", short: "d" }
+	build: { type: "string", short: "d" },
+	watch: { type: "boolean", short: "w" }
 };
 
 const { values: cliArgs } = parseArgs({ options, strict: false });
@@ -476,7 +496,30 @@ function build(targetConfig, config, sourcePath, env, baseProjectTree) {
 	}
 }
 
+function runPipeline(sourcePath, env, activeModes, baseProjectTree, config) {
+	try {
+		for (const targetConfig of activeModes) {
+			const modeCopy = { ...targetConfig };
+			if (cliArgs.output) {
+				modeCopy.output = cliArgs.output;
+			} 
+			if (cliArgs.build) {
+				modeCopy.build = cliArgs.build;
+			}
+			
+			build(modeCopy, config, sourcePath, env, baseProjectTree);
+		}
+	} catch (err) {
+		console.error(`\nBuild Failed: ${err.message}\n`);
+	}
+}
+
 async function main() {
+	if (cliArgs.help) {
+		printHelp();
+		process.exit(0);
+	}
+
 	const configPath = resolveConfigPath(cliArgs.config);
 	const { config, hasConfig } = loadAndValidateConfig(configPath);
 	
@@ -491,14 +534,24 @@ async function main() {
 	const activeModes = resolveActiveModes(config, hasConfig, cliArgs.mode, env);
 	const baseProjectTree = loadProjectTree(cliArgs.template, config.template);
 
-	for (const targetConfig of activeModes) {
-		if (cliArgs.output) {
-			targetConfig.output = cliArgs.output;
-		} 
-		if (cliArgs.build) {
-			targetConfig.build = cliArgs.build;
-		}
-		build(targetConfig, config, sourcePath, env, baseProjectTree);
+	console.log("Generating initial project...");
+	runPipeline(sourcePath, env, activeModes, baseProjectTree, config);
+
+	if (cliArgs.watch) {
+		console.log(`Rogen: Watching for file changes in "${source}"... (Press Ctrl+C to stop)`);
+		
+		let debounceTimeout;
+		fs.watch(sourcePath, { recursive: true }, (_, filename) => {
+			if (!filename) return;
+
+			clearTimeout(debounceTimeout);
+
+			debounceTimeout = setTimeout(() => {
+				runPipeline(sourcePath, env, activeModes, baseProjectTree, config);
+			}, 100);
+		});
+		
+		await new Promise(() => {});
 	}
 }
 
