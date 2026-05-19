@@ -38,12 +38,14 @@ If neither matches, the file defaults to `ReplicatedStorage`.
 ## Setup & Integration
 Integrate Rogen into your workflow to ensure that your `default.project.json` stays synchronized with your file system.
 
-### 1. Install Dependencies
-You will need a few development tools to handle the watching and concurrent execution for the commands:
-```bash
-npm install -D chokidar-cli concurrently
+### 1. Installation
+Rogen is distributed as a standalone CLI tool. Install it into your project using your preferred toolchain manager:
+
+**Rokit (`rokit.toml`)**
+```toml
+[tools]
+rogen = "ldgerrits/rogen@1.0.1"
 ```
-Also, save the `rogen.js` script into your project as `tools/rogen.js`.
 
 ### 2. Configuration (.rogen.json)
 Create a `.rogen.json` file in the root of your project. Rogen will automatically detect it and use that as the configuration.
@@ -116,49 +118,29 @@ You can run Rogen with optional arguments to cleanly override your configuration
 
 - `-b, --build <path>`: Override the directory where your compiled/transpiled code lands.
 
--  `-o, --output <path>`: Override the name and destination of the final generated Rojo .project.json file.
+- `-o, --output <path>`: Override the name and destination of the final generated Rojo .project.json file.
 
-As an example, it is possible to pass a specific configuration file, run a custom mode, inject a base template, and force a targeted output file directly from your terminal:
+As an example, it is possible to pass a specific configuration file, run a custom mode, inject a base template, and force a targeted output file all at the same time:
 ```bash
-node tools/rogen.js -c build.rogen.json -m darklua -t base.template.json -o build.project.json
-```
-Or, if you added the script execution commands to your package.json, you can pass the arguments through npm like this:
-```bash
-npm run rogen -- -c build.rogen.json -m darklua -t base.template.json -o build.project.json
+rogen -c build.rogen.json -m darklua -t base.template.json -o build.project.json
 ```
 
-### 4. Update Package Script
-Add the following scripts to your `package.json` to automate rogen:
+### 4. Commands
 
 #### For luau
-```json
-"scripts": {
-    "rogen": "node tools/rogen.js",
-    "build": "npm run rogen",
-    "watch": "chokidar \"src/**/*\" -c \"npm run rogen\"",
-    "sourcemap": "rojo sourcemap --watch default.project.json --output sourcemap.json",
-    "dev": "npm run build && concurrently \"npm run watch\" \"rojo serve\" \"npm run sourcemap\""
-},
+To make Rogen run and watch your files automatically, use the following command:
+```bash
+rogen -w
 ```
 
 #### For roblox-ts
+Because there is an extra step in the compilation process, it is recommended to install `concurrently` for concurrent execution. That way, you only need to use a single command to set everything up:
+```bash
+npm install -D concurrently
+```
+Then, update your package.json script:
 ```json
 "scripts": {
-    "rogen": "node tools/rogen.js",
-    "build": "npm run rogen && rbxtsc",
-    "watch": "concurrently \"chokidar \"src/**/*\" -c \\\"npm run rogen\\\"\" \"rbxtsc -w\"",
-    "dev": "npm run build && concurrently \"chokidar \"src/**/*\" -c \\\"npm run rogen\\\"\" \"rbxtsc -w\" \"rojo serve\""
+	"watch": "concurrently \"rogen -w\" \"rbxtsc -w\""
 },
 ```
-
-**Note:** Make sure to also add the following to your tsconfig.json:
-```json
-"exclude": [
-	"tools"
-]
-```
-
-### 5. Commands
-* **npm run build:** Generates the latest project map (and performs a single roblox-ts compilation).  
-* **npm run watch:** Monitors your src directory. If you add or move a folder, the mapper instantly updates your Rojo project (and code compilation).  
-* **npm run dev:** The dev command. It builds, compiles, starts all watchers, and launches the Rojo server all in one go.

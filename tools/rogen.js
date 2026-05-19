@@ -429,7 +429,7 @@ function sortObject(obj) {
 		}, {});
 }
 
-function verifyPathsExist(node, buildDir) {
+function findMissingPaths(node, buildDir, missing = []) {
 	for (const key in node) {
 		const val = node[key];
 		if (typeof val !== "object" || val === null) continue;
@@ -437,14 +437,66 @@ function verifyPathsExist(node, buildDir) {
 		if (val.$path && val.$path.startsWith(buildDir)) {
 			const absolutePath = path.resolve(process.cwd(), val.$path);
 			if (!fs.existsSync(absolutePath)) {
-				return false;
+				missing.push({ parent: node, key: key, path: val.$path });
 			}
 		}
-		if (!verifyPathsExist(val, buildDir)) {
-			return false;
-		}
+		findMissingPaths(val, buildDir, missing);
 	}
-	return true;
+	return missing;
+}
+
+function build(targetConfig, baseProjectTree, config, env, sourcePath) {
+	const modeCopy = { ...targetConfig };
+	if (cliArgs.output) modeCopy.output = cliArgs.output;
+	if (cliArgs.build) modeCopy.build = cliArgs.build;
+
+	const rojoTree = JSON.parse(JSON.stringify(baseProjectTree));
+	rojoTree.tree = rojoTree.tree || { $className: "DataModel" };
+
+	const context = {
+		source: config.source || "src",
+		...modeCopy,
+		isTsProject: env.isTsProject,
+		emitLegacyScripts: rojoTree.emitLegacyScripts ?? true,
+		name: rojoTree.name ?? "unknown",
+	};
+
+	let fileCount = 0;
+	walk(sourcePath, (filepath, isInit) => {
+		fileCount++;
+		const relativePath = path.relative(sourcePath, filepath);
+		const { targetService, wrapperFolder, virtualParts, nodeName, projectPath } = resolveRoute(relativePath, isInit, context);
+		
+		let current = rojoTree.tree;
+
+		if (serviceParents[targetService]) {
+			current = getOrCreateNode(current, serviceParents[targetService]);
+		}
+		current = getOrCreateNode(current, targetService);
+		current = getOrCreateNode(current, wrapperFolder, "Folder");
+
+		for (const part of virtualParts) {
+			current = getOrCreateNode(current, part, "Folder");
+		}
+
+		current[nodeName] = { ...current[nodeName], $path: projectPath };
+		if (current[nodeName]["$className"] === "Folder") {
+			delete current[nodeName]["$className"];
+		}
+	});
+
+	const prunedTree = pruneObject(rojoTree, context.build);
+	const sortedTree = sortObject(prunedTree);
+	const missingPaths = findMissingPaths(sortedTree.tree, context.build);
+
+	return {
+		output: context.output,
+		tree: sortedTree,
+		missingPaths,
+		name: context.name,
+		buildDir: context.build,
+		fileCount
+	};
 }
 
 // -------------------------------
@@ -460,61 +512,14 @@ function runPipeline(sourcePath, env, activeModes, baseProjectTree, config, atte
 	const pendingBuilds = [];
 
 	try {
-		// Build step
 		for (const targetConfig of activeModes) {
-			const modeCopy = { ...targetConfig };
-			if (cliArgs.output) modeCopy.output = cliArgs.output;
-			if (cliArgs.build) modeCopy.build = cliArgs.build;
-
-			const rojoTree = JSON.parse(JSON.stringify(baseProjectTree));
-			rojoTree.tree = rojoTree.tree || { $className: "DataModel" };
-
-			const context = {
-				source: config.source || "src",
-				...modeCopy,
-				isTsProject: env.isTsProject,
-				emitLegacyScripts: rojoTree.emitLegacyScripts ?? true,
-				name: rojoTree.name ?? "unknown",
-			};
-
-			let fileCount = 0;
-			walk(sourcePath, (filepath, isInit) => {
-				fileCount++;
-				const relativePath = path.relative(sourcePath, filepath);
-				const { targetService, wrapperFolder, virtualParts, nodeName, projectPath } = resolveRoute(relativePath, isInit, context);
-				
-				let current = rojoTree.tree;
-
-				if (serviceParents[targetService]) {
-					current = getOrCreateNode(current, serviceParents[targetService]);
-				}
-				current = getOrCreateNode(current, targetService);
-				current = getOrCreateNode(current, wrapperFolder, "Folder");
-
-				for (const part of virtualParts) {
-					current = getOrCreateNode(current, part, "Folder");
-				}
-
-				current[nodeName] = { ...current[nodeName], $path: projectPath };
-				if (current[nodeName]["$className"] === "Folder") {
-					delete current[nodeName]["$className"];
-				}
-			});
-
-			const prunedTree = pruneObject(rojoTree, context.build);
-			const sortedTree = sortObject(prunedTree);
-
-			if (!verifyPathsExist(sortedTree.tree, context.build)) {
+			const buildResult = build(targetConfig, baseProjectTree, config, env, sourcePath);
+			
+			if (buildResult.missingPaths.length > 0) {
 				allPathsReady = false;
 			}
 
-			pendingBuilds.push({
-				output: context.output,
-				content: JSON.stringify(sortedTree, null, 2),
-				name: context.name,
-				buildDir: context.build,
-				fileCount
-			});
+			pendingBuilds.push(buildResult);
 		}
 
 		// If files are missing (e.g. due to compiling), poll again for several attempts and run again
@@ -528,16 +533,27 @@ function runPipeline(sourcePath, env, activeModes, baseProjectTree, config, atte
 		if (generationId !== currentGenerationId) return;
 
 		for (const b of pendingBuilds) {
+			// If the attempt limit is hit but paths are still missing, prune the paths instead.
+			if (b.missingPaths.length > 0) {
+				console.warn(`\n${b.missingPaths.length} path(s) failed to compile to "${b.buildDir}" after 5 seconds:`);
+				for (const item of b.missingPaths) {
+					console.warn(`  - ${item.path}`);
+					delete item.parent[item.key];
+				}
+			}
+
+			const finalContent = JSON.stringify(b.tree, null, 2);
+
 			let shouldWrite = true;
 			if (fs.existsSync(b.output)) {
 				const existingContent = fs.readFileSync(b.output, "utf-8");
-				if (existingContent === b.content) {
+				if (existingContent === finalContent) {
 					shouldWrite = false;
 				}
 			}
 
 			if (shouldWrite) {
-				fs.writeFileSync(b.output, b.content);
+				fs.writeFileSync(b.output, finalContent);
 				console.log(`\nSuccess! Generated Rojo tree for "${b.name}"`);
 				console.log(`   Build:    ${b.buildDir}`);
 				console.log(`   Processed: ${b.fileCount} source files`);
