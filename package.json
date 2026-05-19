@@ -2,6 +2,6 @@
   "name": "rogen",
   "version": "1.0.1",
   "description": "A tool for feature-based folder structures with Rojo.",
-  "bin": "./tools/rogen.js",
+  "bin": "./src/rogen.js",
   "dependencies": {}
 }
