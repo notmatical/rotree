@@ -120,6 +120,8 @@ You can run Rogen with optional arguments to cleanly override your configuration
 
 - `-o, --output <path>`: Override the name and destination of the final generated Rojo .project.json file.
 
+- `-w, --watch`: Watch the source directory for changes, automatically regenerating your project files.
+
 As an example, it is possible to pass a specific configuration file, run a custom mode, inject a base template, and force a targeted output file all at the same time:
 ```bash
 rogen -c build.rogen.json -m darklua -t base.template.json -o build.project.json
