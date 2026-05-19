@@ -105,6 +105,7 @@ const pascalCaseRegex = new RegExp(`(${Object.keys(services).join("|")})$`);
 const options = {
 	config: { type: "string", short: "c" },
 	mode: { type: "string", short: "m" },
+	source: { type: "string", short: "s" },
 	template: { type: "string", short: "t" },
 	output: { type: "string", short: "o" },
 	build: { type: "string", short: "d" }
@@ -479,7 +480,7 @@ async function main() {
 	const configPath = resolveConfigPath(cliArgs.config);
 	const { config, hasConfig } = loadAndValidateConfig(configPath);
 	
-	const source = config.source || "src";
+	const source = cliArgs.source || config.source || "src";
 	const sourcePath = path.resolve(process.cwd(), source);
 	
 	if (!fs.existsSync(sourcePath)) {
