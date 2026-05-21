@@ -11,7 +11,7 @@ const {
 const { toPosix } = require("./tree");
 
 function resolveRoute(relativePath, isInit, { emitLegacyScripts, isTsProject, build }) {
-	const parts = relativePath.split(path.sep);
+	const parts = relativePath.split(/[\\/]/)
 	const filename = parts.pop();
 	const basename = path.basename(filename, path.extname(filename));
 	const virtualParts = [];

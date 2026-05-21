@@ -19,7 +19,7 @@ Options:
 	`);
 }
 
-function parseCliArgs() {
+function parseCliArgs(args = process.argv.slice(2)) {
 	const options = {
 		help: { type: "boolean", short: "h" },
 		config: { type: "string", short: "c" },
@@ -31,7 +31,7 @@ function parseCliArgs() {
 		watch: { type: "boolean", short: "w" }
 	};
 
-	const { values } = parseArgs({ options, strict: false });
+	const { values } = parseArgs({ args, options, strict: false });
 	return values;
 }
 
