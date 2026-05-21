@@ -1,7 +1,24 @@
 {
   "name": "rogen",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "A tool for feature-based folder structures with Rojo.",
-  "bin": "./src/rogen.js",
-  "dependencies": {}
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "main": "src/index.js",
+  "bin": {
+    "rogen": "./bin/rogen.js"
+  },
+  "pkg": {
+    "scripts": [
+      "src/**/*.js"
+    ],
+    "targets": [
+      "node18-win-x64"
+    ]
+  },
+  "devDependencies": {
+    "jest": "^30.4.2"
+  }
 }
