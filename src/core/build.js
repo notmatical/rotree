@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const { getOrCreateNode, pruneObject, sortObject, findMissingPaths } = require("./tree");
 const { resolveRoute } = require("./route");
-const { serviceParents } = require("../constants");
+const { serviceParents, generateRoutingMaps } = require("../constants");
 
 const isScript = (filename) => /\.(tsx?|luau|lua)$/i.test(filename) && !filename.toLowerCase().endsWith(".d.ts");
 const isModel = (filename) => /\.(rbxm|rbxmx)$/i.test(filename);
@@ -44,6 +44,7 @@ function build(targetConfig, baseProjectTree, config, env, sourcePath, cliArgs) 
 		isTsProject: env.isTsProject,
 		emitLegacyScripts: rojoTree.emitLegacyScripts ?? true,
 		name: rojoTree.name ?? "unknown",
+		routingMaps: generateRoutingMaps(config.aliases || {})
 	};
 
 	let fileCount = 0;

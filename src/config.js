@@ -31,7 +31,7 @@ function loadAndValidateConfig(configPath) {
 	}
 
 	const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-	const standardKeys = ["source", "template", "luau", "ts", "darklua"];
+	const standardKeys = ["source", "template", "luau", "ts", "darklua", "aliases"];
 
 	for (const key in config) {
 		if (!standardKeys.includes(key)) {
