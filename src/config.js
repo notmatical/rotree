@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { fallbackConfig } = require("./constants");
+const { defaultConfig } = require("./constants");
 
 function resolveConfigPath(customPathArg) {
 	const cwd = process.cwd();
@@ -27,11 +27,11 @@ function resolveConfigPath(customPathArg) {
 
 function loadAndValidateConfig(configPath) {
 	if (!configPath) {
-		return { config: JSON.parse(JSON.stringify(fallbackConfig)), hasConfig: false };
+		return { config: JSON.parse(JSON.stringify(defaultConfig)), hasConfig: false };
 	}
 
 	const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-	const standardKeys = ["source", "template", "luau", "ts", "darklua"];
+	const standardKeys = ["source", "template", "luau", "ts", "darklua", "aliases", "keepSuffixes"];
 
 	for (const key in config) {
 		if (!standardKeys.includes(key)) {
@@ -41,6 +41,8 @@ function loadAndValidateConfig(configPath) {
 			}
 		} else if (key === "template" && typeof config[key] !== "object" && typeof config[key] !== "string") {
 			throw new Error(`\nConfiguration Error: 'template' must be an inline object or a string path to a JSON file.\n`);
+		} else if (key === "keepSuffixes" && typeof config[key] !== "boolean") {
+			throw new Error(`\nConfiguration Error: 'keepSuffixes' must be a boolean.\n`);
 		}
 	}
 
@@ -64,7 +66,7 @@ function loadProjectTree(cliProjectArg, configProjectField) {
 		return configProjectField;
 	}
 	
-	return JSON.parse(JSON.stringify(fallbackConfig.template));
+	return JSON.parse(JSON.stringify(defaultConfig.template));
 }
 
 function getEnvironment() {
@@ -75,7 +77,8 @@ function getEnvironment() {
 }
 
 function resolveActiveModes(config, hasConfig, cliMode, env) {
-	const baseLanguage = env.isTsProject ? (config.ts || fallbackConfig.ts) : (config.luau || fallbackConfig.luau);
+	const baseLanguage = env.isTsProject ? (config.ts || defaultConfig.ts) : (config.luau || defaultConfig.luau);
+	const nonModeKeys = new Set(["source", "template", "aliases", "keepSuffixes"]);
 	const activeModes = [];
 
 	if (hasConfig) {
@@ -84,7 +87,7 @@ function resolveActiveModes(config, hasConfig, cliMode, env) {
 			activeModes.push(config[cliMode]);
 		} else {
 			for (const key in config) {
-				if (key !== "source" && key !== "template" && typeof config[key] === "object" && !Array.isArray(config[key])) {
+				if (!nonModeKeys.has(key) && typeof config[key] === "object" && !Array.isArray(config[key])) {
 					if (key === "luau" && env.isTsProject) continue;
 					if (key === "ts" && !env.isTsProject) continue;
 					if (key === "darklua" && !env.isDarkluaProject) continue;
@@ -97,7 +100,7 @@ function resolveActiveModes(config, hasConfig, cliMode, env) {
 		}
 	} else {
 		if (cliMode) {
-			if (!fallbackConfig[cliMode]) throw new Error(`Mode "${cliMode}" is not defined in the fallback config.`);
+			if (!defaultConfig[cliMode]) throw new Error(`Mode "${cliMode}" is not defined in the fallback config.`);
 			activeModes.push({ ...baseLanguage, ...config[cliMode] });
 		} else {
 			activeModes.push(baseLanguage);

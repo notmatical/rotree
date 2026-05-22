@@ -3,12 +3,26 @@ const path = require("path");
 const { printHelp, parseCliArgs } = require("./cli");
 const { resolveConfigPath, loadAndValidateConfig, loadProjectTree, getEnvironment, resolveActiveModes } = require("./config");
 const { execute } = require("./core/pipeline");
+const { defaultConfig } = require("./constants");
 
 async function main() {
 	const cliArgs = parseCliArgs();
 
 	if (cliArgs.help) {
 		printHelp();
+		process.exit(0);
+	}
+
+	if (cliArgs.init) {
+		const targetPath = path.resolve(process.cwd(), ".rogen.json");
+		
+		if (fs.existsSync(targetPath)) {
+			console.error(`\nA .rogen.json file already exists in this directory.\n`);
+			process.exit(1);
+		}
+
+		fs.writeFileSync(targetPath, JSON.stringify(defaultConfig, null, '\t'));
+		console.log(`\nSuccess! Created .rogen.json in the current directory.\n`);
 		process.exit(0);
 	}
 

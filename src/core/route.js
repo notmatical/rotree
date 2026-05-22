@@ -1,16 +1,15 @@
 const path = require("path");
 const { 
-	lowerCaseServiceMap, 
 	serviceAliases, 
-	separatorRegex, 
-	pascalCaseRegex, 
-	services, 
 	serverContainers, 
-	clientContainers 
+	clientContainers
 } = require("../constants");
 const { toPosix } = require("./tree");
 
-function resolveRoute(relativePath, isInit, { emitLegacyScripts, isTsProject, build }) {
+function resolveRoute(relativePath, isInit, context) {
+	const { emitLegacyScripts, isTsProject, build, routingMaps, keepSuffixes } = context;
+	const { mergedServices, lowerCaseMap, separatorRegex, pascalCaseRegex } = routingMaps;
+
 	const parts = relativePath.split(/[\\/]/)
 	const filename = parts.pop();
 	const basename = path.basename(filename, path.extname(filename));
@@ -23,7 +22,7 @@ function resolveRoute(relativePath, isInit, { emitLegacyScripts, isTsProject, bu
 	// Folder routing
 	for (const part of parts) {
 		const lowerPart = part.toLowerCase();
-		const matchedService = lowerCaseServiceMap[lowerPart];
+		const matchedService = lowerCaseMap[lowerPart];
 
 		if (matchedService) {
 			targetService = matchedService;
@@ -42,12 +41,12 @@ function resolveRoute(relativePath, isInit, { emitLegacyScripts, isTsProject, bu
 	// Suffix routing
 	if (sepMatch) {
 		const suffix = sepMatch[1].toLowerCase();
-		mappedService = lowerCaseServiceMap[suffix];
+		mappedService = lowerCaseMap[suffix];
 		matchedSuffixLength = sepMatch[0].length;
 		if (!isInit && serviceAliases.has(suffix)) environment = suffix;
 	} else if (pascalMatch) {
 		const suffix = pascalMatch[1].toLowerCase();
-		mappedService = services[pascalMatch[1]];
+		mappedService = mergedServices[pascalMatch[1]];
 		matchedSuffixLength = pascalMatch[0].length;
 		if (!isInit && serviceAliases.has(suffix)) environment = suffix;
 	}
@@ -82,7 +81,20 @@ function resolveRoute(relativePath, isInit, { emitLegacyScripts, isTsProject, bu
 		}
 		projectPath = toPosix(path.join(build, compiledRelativePath));
 		if (mappedService) {
-			nodeName = basename.slice(0, -matchedSuffixLength);
+			let shouldStrip = !keepSuffixes;
+
+			// Rojo relies on '.server' and '.client' explicitly for script types.
+			// Even if keepSuffixes is true, we must strip these exact dot-prefixes.
+			if (keepSuffixes && sepMatch) {
+				const exactMatch = sepMatch[0].toLowerCase();
+				if (exactMatch === ".server" || exactMatch === ".client") {
+					shouldStrip = true;
+				}
+			}
+
+			if (shouldStrip) {
+				nodeName = basename.slice(0, -matchedSuffixLength);
+			}
 		} 
 	}
 

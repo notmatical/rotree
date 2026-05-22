@@ -1,5 +1,7 @@
-const fallbackConfig = {
+const defaultConfig = {
 	"source": "src",
+	"keepSuffixes": false,
+	"aliases": {},
 	"luau": { 
 		"output": "default.project.json", 
 		"build": "src"
@@ -82,18 +84,22 @@ const serviceAliases = new Set([
 	"shared"
 ]);
 
-const lowerCaseServiceMap = Object.fromEntries(Object.entries(services).map(([k, v]) => [k.toLowerCase(), v]));
-const separatorRegex = new RegExp(`[\\.\\-_](${Object.keys(lowerCaseServiceMap).join("|")})$`, "i");
-const pascalCaseRegex = new RegExp(`(${Object.keys(services).join("|")})$`);
+function generateRoutingMaps(customAliases = {}) {
+	const mergedServices = { ...services, ...customAliases };
+	const lowerCaseMap = Object.fromEntries(Object.entries(mergedServices).map(([k, v]) => [k.toLowerCase(), v]));
+	
+	const separatorRegex = new RegExp(`[\\.\\-_](${Object.keys(lowerCaseMap).join("|")})$`, "i");
+	const pascalCaseRegex = new RegExp(`(${Object.keys(mergedServices).join("|")})$`);
+
+	return { mergedServices, lowerCaseMap, separatorRegex, pascalCaseRegex };
+}
 
 module.exports = {
-	fallbackConfig,
+	defaultConfig,
 	services,
 	serviceParents,
 	serverContainers,
 	clientContainers,
 	serviceAliases,
-	lowerCaseServiceMap,
-	separatorRegex,
-	pascalCaseRegex
+	generateRoutingMaps
 };
