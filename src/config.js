@@ -31,7 +31,7 @@ function loadAndValidateConfig(configPath) {
 	}
 
 	const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-	const standardKeys = ["source", "template", "luau", "ts", "darklua", "aliases"];
+	const standardKeys = ["source", "template", "luau", "ts", "darklua", "aliases", "keepSuffixes"];
 
 	for (const key in config) {
 		if (!standardKeys.includes(key)) {
@@ -41,6 +41,8 @@ function loadAndValidateConfig(configPath) {
 			}
 		} else if (key === "template" && typeof config[key] !== "object" && typeof config[key] !== "string") {
 			throw new Error(`\nConfiguration Error: 'template' must be an inline object or a string path to a JSON file.\n`);
+		} else if (key === "keepSuffixes" && typeof config[key] !== "boolean") {
+			throw new Error(`\nConfiguration Error: 'keepSuffixes' must be a boolean.\n`);
 		}
 	}
 

@@ -26,4 +26,14 @@ describe("CLI Argument Parsing", () => {
 		expect(options.mode).toBe("darklua");
 		expect(options.watch).toBeUndefined();
 	});
+
+	it("should parse keepSuffixes flag correctly", () => {
+		const args1 = ["--keepSuffixes"];
+		const options1 = parseCliArgs(args1);
+		expect(options1.keepSuffixes).toBe(true);
+
+		const args2 = ["-k"];
+		const options2 = parseCliArgs(args2);
+		expect(options2.keepSuffixes).toBe(true);
+	});
 });

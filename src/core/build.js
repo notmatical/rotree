@@ -44,7 +44,8 @@ function build(targetConfig, baseProjectTree, config, env, sourcePath, cliArgs) 
 		isTsProject: env.isTsProject,
 		emitLegacyScripts: rojoTree.emitLegacyScripts ?? true,
 		name: rojoTree.name ?? "unknown",
-		routingMaps: generateRoutingMaps(config.aliases || {})
+		routingMaps: generateRoutingMaps(config.aliases || {}),
+		keepSuffixes: cliArgs.keepSuffixes ?? config.keepSuffixes ?? false
 	};
 
 	let fileCount = 0;

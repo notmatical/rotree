@@ -16,6 +16,7 @@ Options:
   -t, --template <path> Specify a path to a JSON file containing your base Rojo blueprint
   -b, --build <path>    Override the directory where your compiled/transpiled code lands
   -o, --output <path>   Override the name and destination of the final generated Rojo project file
+  -k, --keepSuffixes    Do not strip routing suffixes (e.g., server, client) from names
 	`);
 }
 
@@ -28,7 +29,8 @@ function parseCliArgs(args = process.argv.slice(2)) {
 		template: { type: "string", short: "t" },
 		output: { type: "string", short: "o" },
 		build: { type: "string", short: "b" },
-		watch: { type: "boolean", short: "w" }
+		watch: { type: "boolean", short: "w" },
+		keepSuffixes: { type: "boolean", short: "k" }
 	};
 
 	const { values } = parseArgs({ args, options, strict: false });

@@ -52,7 +52,7 @@ describe("Router Logic", () => {
 			...baseContext,
 			routingMaps: generateRoutingMaps({
 				"Controller": "StarterPlayerScripts",
-				"server": "ReplicatedStorage" // Overriding default 'server'
+				"server": "ReplicatedStorage"
 			})
 		};
 
@@ -66,5 +66,29 @@ describe("Router Logic", () => {
 		const result2 = resolveRoute("systems/Combat.server.lua", false, customContext);
 		expect(result2.targetService).toBe("ReplicatedStorage");
 		expect(result2.nodeName).toBe("Combat");
+	});
+
+	it("should retain routing suffixes in nodeName when keepSuffixes is true, EXCEPT for .server and .client", () => {
+		const keepSuffixContext = { ...baseContext, keepSuffixes: true };
+		
+		// .server (must strip)
+		const result1 = resolveRoute("systems/Combat.server.lua", false, keepSuffixContext);
+		expect(result1.targetService).toBe("ServerScriptService");
+		expect(result1.nodeName).toBe("Combat");
+		expect(result1.wrapperFolder).toBe("server");
+
+		// _server (must retain)
+		const result2 = resolveRoute("systems/Combat_server.lua", false, keepSuffixContext);
+		expect(result2.targetService).toBe("ServerScriptService");
+		expect(result2.nodeName).toBe("Combat_server");
+
+		// PascalCase suffix test (must retain)
+		const customContext = {
+			...keepSuffixContext,
+			routingMaps: generateRoutingMaps({ "Controller": "StarterPlayerScripts" })
+		};
+		const result3 = resolveRoute("ui/PlayerController.lua", false, customContext);
+		expect(result3.targetService).toBe("StarterPlayerScripts");
+		expect(result3.nodeName).toBe("PlayerController");
 	});
 });

@@ -1,7 +1,7 @@
 <div align="center">
 	<h1>Rogen</h1>
-    <p>A tool for feature-based folder structures with Rojo.</p>
-    <img src="example.png" alt="Visual mapping of VS Code to Roblox Explorer" width="100%">
+	<p>A tool for feature-based folder structures with Rojo.</p>
+	<img src="example.png" alt="Visual mapping of VS Code to Roblox Explorer" width="100%">
 </div>
 
 ## What is Rogen?
@@ -25,12 +25,12 @@ If a file is located within a folder named after a service or a keyword, it is a
 ### 2. Suffix Context (Secondary)
 If a file is in a generic folder, Rogen inspects the filename for a suffix. This allows you to define a file's destination without moving it into a specific sub-folder.
 * **Delimited Suffixes:** Use a separator such as a dot, hyphen, or underscore.
-    - Examples: `auth.server.ts`, `input-client.ts`, `data_shared.ts`
+	- Examples: `auth.server.ts`, `input-client.ts`, `data_shared.ts`
 
 * **PascalCase Suffixes:** Append the service name directly to the end of the filename.
-    - Examples: `AuthServer.ts`, `InputClient.ts`, `DataShared.ts`
+	- Examples: `AuthServer.ts`, `InputClient.ts`, `DataShared.ts`
 
-    **Note:** Rogen strips the suffix for the final Rojo object name. `AuthServer.ts` becomes `Auth` in Roblox.
+	**Note:** Rogen strips the suffix for the final Rojo object name. `AuthServer.ts` becomes `Auth` in Roblox.
 
 ### 3. Default
 If neither matches, the file defaults to `ReplicatedStorage`.
@@ -71,6 +71,7 @@ Here is a default configuration structure that works for both roblox-ts and luau
 		"Controller": "ReplicatedStorage",
 		"Service": "ServerScriptService"
 	},
+	"keepSuffixes": false,
 	"template": {
 		"name": "roblox-project",
 		"globIgnorePaths": [
@@ -125,6 +126,8 @@ You can run Rogen with optional arguments to cleanly override your configuration
 - `-b, --build <path>`: Override the directory where your compiled/transpiled code lands.
 
 - `-o, --output <path>`: Override the name and destination of the final generated Rojo .project.json file.
+
+- `-k, --keepSuffixes`: Do not strip routing suffixes (e.g., server, client) from names.
 
 - `-w, --watch`: Watch the source directory for changes, automatically regenerating your project files.
 
