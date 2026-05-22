@@ -115,6 +115,8 @@ You can run Rogen with optional arguments to cleanly override your configuration
 
 - `-h, --help:` Show this help menu containing all available options.
 
+- `-i, --init:` Generate a default .rogen.json config file.
+
 - `-c, --config <path>`: Specify a custom Rogen config file path.
 
 - `-m, --mode <mode>`: Specify the mode to run (luau, ts, or darklua). If omitted, Rogen automatically detects your project configuration (via tsconfig.json or .darklua.json) and runs the appropriate target(s).

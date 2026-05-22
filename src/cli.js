@@ -9,6 +9,7 @@ Usage:
 
 Options:
   -h, --help            Show this help menu
+  -i, --init            Generate a default .rogen.json config file
   -w, --watch           Watch the source directory for changes and regenerate automatically
   -c, --config <path>   Specify a custom Rogen config file path
   -m, --mode <mode>     Specify the mode to run (luau, ts, or darklua)
@@ -23,6 +24,7 @@ Options:
 function parseCliArgs(args = process.argv.slice(2)) {
 	const options = {
 		help: { type: "boolean", short: "h" },
+		init: { type: "boolean", short: "i" },
 		config: { type: "string", short: "c" },
 		mode: { type: "string", short: "m" },
 		source: { type: "string", short: "s" },

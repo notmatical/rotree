@@ -36,4 +36,14 @@ describe("CLI Argument Parsing", () => {
 		const options2 = parseCliArgs(args2);
 		expect(options2.keepSuffixes).toBe(true);
 	});
+
+	it("should parse init flag correctly", () => {
+		const args1 = ["--init"];
+		const options1 = parseCliArgs(args1);
+		expect(options1.init).toBe(true);
+
+		const args2 = ["-i"];
+		const options2 = parseCliArgs(args2);
+		expect(options2.init).toBe(true);
+	});
 });

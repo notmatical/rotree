@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { fallbackConfig } = require("./constants");
+const { defaultConfig } = require("./constants");
 
 function resolveConfigPath(customPathArg) {
 	const cwd = process.cwd();
@@ -27,7 +27,7 @@ function resolveConfigPath(customPathArg) {
 
 function loadAndValidateConfig(configPath) {
 	if (!configPath) {
-		return { config: JSON.parse(JSON.stringify(fallbackConfig)), hasConfig: false };
+		return { config: JSON.parse(JSON.stringify(defaultConfig)), hasConfig: false };
 	}
 
 	const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
@@ -66,7 +66,7 @@ function loadProjectTree(cliProjectArg, configProjectField) {
 		return configProjectField;
 	}
 	
-	return JSON.parse(JSON.stringify(fallbackConfig.template));
+	return JSON.parse(JSON.stringify(defaultConfig.template));
 }
 
 function getEnvironment() {
@@ -77,7 +77,7 @@ function getEnvironment() {
 }
 
 function resolveActiveModes(config, hasConfig, cliMode, env) {
-	const baseLanguage = env.isTsProject ? (config.ts || fallbackConfig.ts) : (config.luau || fallbackConfig.luau);
+	const baseLanguage = env.isTsProject ? (config.ts || defaultConfig.ts) : (config.luau || defaultConfig.luau);
 	const activeModes = [];
 
 	if (hasConfig) {
@@ -99,7 +99,7 @@ function resolveActiveModes(config, hasConfig, cliMode, env) {
 		}
 	} else {
 		if (cliMode) {
-			if (!fallbackConfig[cliMode]) throw new Error(`Mode "${cliMode}" is not defined in the fallback config.`);
+			if (!defaultConfig[cliMode]) throw new Error(`Mode "${cliMode}" is not defined in the fallback config.`);
 			activeModes.push({ ...baseLanguage, ...config[cliMode] });
 		} else {
 			activeModes.push(baseLanguage);

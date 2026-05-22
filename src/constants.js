@@ -1,5 +1,7 @@
-const fallbackConfig = {
+const defaultConfig = {
 	"source": "src",
+	"keepSuffixes": false,
+	"aliases": {},
 	"luau": { 
 		"output": "default.project.json", 
 		"build": "src"
@@ -93,7 +95,7 @@ function generateRoutingMaps(customAliases = {}) {
 }
 
 module.exports = {
-	fallbackConfig,
+	defaultConfig,
 	services,
 	serviceParents,
 	serverContainers,
