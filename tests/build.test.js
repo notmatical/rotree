@@ -103,7 +103,7 @@ describe("Builder Integration", () => {
 		expect(result.tree.tree.ReplicatedStorage.shared.LevelData).toBeDefined();
 		
 		// Paths should correctly map relative to their respective base folders
-		expect(result.tree.tree.ReplicatedStorage.shared.CoreMath.$path).toBe("out/CoreMath.lua");
-		expect(result.tree.tree.ReplicatedStorage.shared.LevelData.$path).toBe("out/LevelData.lua");
+		expect(result.tree.tree.ReplicatedStorage.shared.CoreMath.$path).toBe("out/core/CoreMath.lua");
+		expect(result.tree.tree.ReplicatedStorage.shared.LevelData.$path).toBe("out/chapter1/LevelData.lua");
 	});
 });

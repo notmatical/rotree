@@ -51,10 +51,23 @@ function build(targetConfig, baseProjectTree, config, env, sourcePaths, cliArgs)
 	let fileCount = 0;
 
 	for (const sourcePath of sourcePaths) {
+
+		// Calculate the sub-path of to append to our build directory for multi-place support.
+		// So, if source is "src/hub" and build is "out", subPath becomes "hub", context.build 
+		// become "out/hub".
+		const relativePath = path.relative(process.cwd(), sourcePath);
+		const segments = relativePath.split(path.sep);
+		const subPath = segments.length > 1 ? segments.slice(1).join(path.sep) : "";
+
+		const newContext = {
+			...context,
+			build: path.join(context.build, subPath)
+		};
+
 		walk(sourcePath, (filepath, isInit) => {
 			fileCount++;
 			const relativePath = path.relative(sourcePath, filepath);
-			const { targetService, wrapperFolder, virtualParts, nodeName, projectPath } = resolveRoute(relativePath, isInit, context);
+			const { targetService, wrapperFolder, virtualParts, nodeName, projectPath } = resolveRoute(relativePath, isInit, newContext);
 			
 			let current = rojoTree.tree;
 
