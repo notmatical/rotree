@@ -37,7 +37,7 @@ If a file is in a generic folder, Rogen inspects the filename for a suffix. This
 ### 3. Default
 If neither matches, the file defaults to `ReplicatedStorage`.
 
-## Multi-Place Merging
+## Merging of Multiple Sources
 Rogen supports passing an array of directories to the source config (or passing the -s CLI flag multiple times). This is useful for multi-place games where you want to share a base library across different projects.
 
 * **Clean Merging:** If src/core and src/hub both contain a shared folder, Rogen will merge the contents of both into a single ReplicatedStorage.shared folder. No duplicates are created.
