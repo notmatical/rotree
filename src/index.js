@@ -47,7 +47,7 @@ async function main() {
 	execute(sourcePaths, env, activeModes, baseProjectTree, config, cliArgs);
 
 	if (cliArgs.watch) {
-		console.log(`Rogen watching for file changes in "${source}"... (Press Ctrl+C to stop)`);
+		console.log(`Rogen watching for file changes in: "${sourceDirs.join(', ')}"... (Press Ctrl+C to stop)`);
 		
 		let debounceTimeout;
 		for (const sourcePath of sourcePaths) {
