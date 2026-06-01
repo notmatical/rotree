@@ -30,7 +30,7 @@ function walk(dir, callback) {
 	}
 }
 
-function build(targetConfig, baseProjectTree, config, env, sourcePath, cliArgs) {
+function build(targetConfig, baseProjectTree, config, env, sourcePaths, cliArgs) {
 	const modeCopy = { ...targetConfig };
 	if (cliArgs.output) modeCopy.output = cliArgs.output;
 	if (cliArgs.build) modeCopy.build = cliArgs.build;
@@ -50,28 +50,43 @@ function build(targetConfig, baseProjectTree, config, env, sourcePath, cliArgs) 
 
 	let fileCount = 0;
 
-	walk(sourcePath, (filepath, isInit) => {
-		fileCount++;
-		const relativePath = path.relative(sourcePath, filepath);
-		const { targetService, wrapperFolder, virtualParts, nodeName, projectPath } = resolveRoute(relativePath, isInit, context);
-		
-		let current = rojoTree.tree;
+	for (const sourcePath of sourcePaths) {
 
-		if (serviceParents[targetService]) {
-			current = getOrCreateNode(current, serviceParents[targetService]);
-		}
-		current = getOrCreateNode(current, targetService);
-		current = getOrCreateNode(current, wrapperFolder, "Folder");
+		// Calculate the sub-path of to append to our build directory for multi-place support.
+		// So, if source is "src/hub" and build is "out", subPath becomes "hub", context.build 
+		// become "out/hub".
+		const relativePath = path.relative(process.cwd(), sourcePath);
+		const segments = relativePath.split(path.sep);
+		const subPath = segments.length > 1 ? segments.slice(1).join(path.sep) : "";
 
-		for (const part of virtualParts) {
-			current = getOrCreateNode(current, part, "Folder");
-		}
+		const newContext = {
+			...context,
+			build: path.join(context.build, subPath)
+		};
 
-		current[nodeName] = { ...current[nodeName], $path: projectPath };
-		if (current[nodeName]["$className"] === "Folder") {
-			delete current[nodeName]["$className"];
-		}
-	});
+		walk(sourcePath, (filepath, isInit) => {
+			fileCount++;
+			const relativePath = path.relative(sourcePath, filepath);
+			const { targetService, wrapperFolder, virtualParts, nodeName, projectPath } = resolveRoute(relativePath, isInit, newContext);
+			
+			let current = rojoTree.tree;
+
+			if (serviceParents[targetService]) {
+				current = getOrCreateNode(current, serviceParents[targetService]);
+			}
+			current = getOrCreateNode(current, targetService);
+			current = getOrCreateNode(current, wrapperFolder, "Folder");
+
+			for (const part of virtualParts) {
+				current = getOrCreateNode(current, part, "Folder");
+			}
+
+			current[nodeName] = { ...current[nodeName], $path: projectPath };
+			if (current[nodeName]["$className"] === "Folder") {
+				delete current[nodeName]["$className"];
+			}
+		});
+	}
 
 	const prunedTree = pruneObject(rojoTree, context.build);
 	const sortedTree = sortObject(prunedTree);
