@@ -11,7 +11,7 @@ Instead of separating your codebase in a `client`, `shared` and `server` folder 
 
 In the background, Rogen watches your file system and dynamically generates your `default.project.json` map for Rojo, ensuring your repository stays organized by feature while Roblox receives the exact service structure it expects.
 
-Rogen also supports multi-repo (or polyrepo) codebases, allowing you to merge multiple repositories into a single Rojo project.
+Rogen also supports codebases that contain multiple directories, allowing you to merge them into a single Rojo project. This is useful for multi-place games where you want to share a core across different places.
 
 *If you use luau, it is **highly recommended** to also set up darklua for improved string requires.*
 
@@ -38,9 +38,9 @@ If a file is in a generic folder, Rogen inspects the filename for a suffix. This
 If neither matches, the file defaults to `ReplicatedStorage`.
 
 ## Merging of Multiple Sources
-Rogen supports passing an array of directories to the source config (or passing the -s CLI flag multiple times). This is useful for multi-place games where you want to share a core across different places.
+Rogen supports passing an array of directories to the source config (or passing the -s CLI flag multiple times). 
 
-* **Clean Merging:** If src/core and src/hub both contain a shared folder, Rogen will merge the contents of both into a single ReplicatedStorage.shared folder. No duplicates are created.
+* **Clean Merging:** If, for example, `src/core` and `src/hub` both contain a shared folder, Rogen will merge the contents of both into a single `ReplicatedStorage/shared` folder. No duplicates are created.
 
 * **Overrides:** The order of your sources matters. If both directories contain a file with the exact same name and routing path, the directory listed last will overwrite the previous one.
 
