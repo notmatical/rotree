@@ -115,3 +115,49 @@ describe("Router Logic", () => {
 		expect(result.nodeName).toBe("Combat");
 	});
 });
+
+
+describe("Marker File Routing", () => {
+	const baseContext = {
+		emitLegacyScripts: true,
+		isTsProject: false,
+		build: "src",
+		routingMaps: generateRoutingMaps(),
+		directoryMarkers: {}
+	};
+
+	it("should route based on a root marker file", () => {
+		const context = { ...baseContext, directoryMarkers: { "": "server" } };
+		const result = resolveRoute("Combat.lua", false, context);
+		
+		expect(result.targetService).toBe("ServerScriptService");
+		expect(result.wrapperFolder).toBe("server");
+	});
+
+	it("should route based on a directory marker file and preserve the folder name", () => {
+		const context = { ...baseContext, directoryMarkers: { "AntiCheat": "server" } };
+		const result = resolveRoute("AntiCheat/scanner.lua", false, context);
+		
+		expect(result.targetService).toBe("ServerScriptService");
+		// The folder "AntiCheat" should be preserved in the tree because it didn't trigger the route
+		expect(result.virtualParts).toContain("AntiCheat");
+	});
+
+	it("should prioritize file suffix over a directory marker", () => {
+		const context = { ...baseContext, directoryMarkers: { "network": "shared" } };
+		const result = resolveRoute("network/api.server.lua", false, context);
+		
+		// The file suffix now overrides the folder marker, forcing it to the server
+		expect(result.targetService).toBe("ServerScriptService");
+		expect(result.wrapperFolder).toBe("server"); 
+	});
+
+	it("should prioritize directory marker over a routing folder name", () => {
+		const context = { ...baseContext, directoryMarkers: { "client": "server" } };
+		const result = resolveRoute("client/main.lua", false, context);
+		
+		expect(result.targetService).toBe("ServerScriptService");
+		// Because the marker won, the word "client" becomes a regular virtual folder
+		expect(result.virtualParts).toContain("client");
+	});
+});

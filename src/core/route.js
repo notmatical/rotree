@@ -7,7 +7,7 @@ const {
 const { toPosix } = require("./tree");
 
 function resolveRoute(relativePath, isInit, context) {
-	const { emitLegacyScripts, isTsProject, build, routingMaps, keepRouteNames } = context;
+	const { emitLegacyScripts, isTsProject, build, routingMaps, keepRouteNames, directoryMarkers } = context;
 	const { mergedServices, lowerCaseMap, separatorSuffixRegex, pascalCaseSuffixRegex, prefixRegex } = routingMaps;
 
 	const parts = relativePath.split(/[\\/]/)
@@ -19,12 +19,32 @@ function resolveRoute(relativePath, isInit, context) {
 	let lastRouteKeyword = null;
 	let environment = null;
 
+	// Marker routing
+	if (directoryMarkers && directoryMarkers[""]) {
+		const rootMarker = directoryMarkers[""];
+		targetService = lowerCaseMap[rootMarker];
+		lastRouteKeyword = rootMarker;
+		if (serviceAliases.has(rootMarker)) environment = rootMarker;
+	}
+
+	let currentPath = "";
+
 	// Folder routing
 	for (const part of parts) {
+		currentPath = currentPath ? `${currentPath}/${part}` : part;
+
 		const lowerPart = part.toLowerCase();
 		const matchedService = lowerCaseMap[lowerPart];
+		const marker = directoryMarkers ? directoryMarkers[currentPath] : undefined;
 
-		if (matchedService) {
+		if (marker) {
+			targetService = lowerCaseMap[marker];
+			lastRouteKeyword = marker;
+			if (serviceAliases.has(marker)) environment = marker;
+			
+			// Because the marker dictated the route, the folder name itself is preserved in the tree
+			virtualParts.push(part);
+		} else if (matchedService) {
 			targetService = matchedService;
 			lastRouteKeyword = lowerPart;
 			if (serviceAliases.has(lowerPart)) environment = lowerPart;
@@ -62,7 +82,7 @@ function resolveRoute(relativePath, isInit, context) {
 		isPrefix = true;
 	}
 
-	if (mappedService && !lastRouteKeyword) targetService = mappedService;
+	if (mappedService) targetService = mappedService;
 
 	// Resolve namespace wrapper folder
 	let wrapperFolder = "shared";

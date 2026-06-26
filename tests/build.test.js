@@ -106,4 +106,42 @@ describe("Builder Integration", () => {
 		expect(result.tree.tree.ReplicatedStorage.shared.CoreMath.$path).toBe("out/core/CoreMath.lua");
 		expect(result.tree.tree.ReplicatedStorage.shared.LevelData.$path).toBe("out/chapter1/LevelData.lua");
 	});
+
+	it("should route files based on marker files instead of folder names", () => {
+		fs.existsSync.mockReturnValue(true);
+
+		fs.readdirSync.mockImplementation((dir) => {
+			const normalizedDir = dir.replace(/\\/g, "/");
+			
+			if (normalizedDir.endsWith("src")) {
+				return [
+					{ name: "Database", isDirectory: () => true, isFile: () => false },
+				];
+			}
+			
+			if (normalizedDir.endsWith("Database")) {
+				return [
+					{ name: ".server", isDirectory: () => false, isFile: () => true },
+					{ name: "query.lua", isDirectory: () => false, isFile: () => true }
+				];
+			}
+
+			return [];
+		});
+
+		const targetConfig = { build: "out", output: "test.project.json" };
+		const baseTree = { name: "test-game", tree: {} };
+		const config = { source: "src" };
+		const env = { isTsProject: false };
+		const cliArgs = {};
+
+		const result = build(targetConfig, baseTree, config, env, ["src"], cliArgs);
+
+		expect(result.fileCount).toBe(1); // query.lua (marker file is skipped in count)
+		
+		// The Database folder should route to ServerScriptService because of the .server file.
+		// Additionally, "Database" should be kept as a folder because it was mapped by a marker.
+		expect(result.tree.tree.ServerScriptService.server.Database.query).toBeDefined();
+		expect(result.tree.tree.ServerScriptService.server.Database.query.$path).toBe("out/Database/query.lua");
+	});
 });
