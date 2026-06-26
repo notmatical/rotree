@@ -1,6 +1,6 @@
 const defaultConfig = {
 	"source": ["src"],
-	"keepSuffixes": false,
+	"keepRouteNames": false,
 	"aliases": {},
 	"luau": { 
 		"output": "default.project.json", 

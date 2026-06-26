@@ -25,14 +25,14 @@ If a file is located within a folder named after a service or a keyword, it is a
 * **Behavior:** All files and sub-folders within these directories inherit the target service.
 
 ### 2. Suffix Context (Secondary)
-If a file is in a generic folder, Rogen inspects the filename for a suffix. This allows you to define a file's destination without moving it into a specific sub-folder.
-* **Delimited Suffixes:** Use a separator such as a dot, hyphen, or underscore.
-	- Examples: `input-client.ts`, `data_shared.ts`, `data.server.ts`
+If a file is in a generic folder, Rogen inspects the filename for a routing prefix or suffix. This allows you to define a file's destination without moving it into a specific sub-folder.
+* **Delimited:** Use a separator (dot, hyphen, or underscore) before or after the base name
+	- Examples: `input-client.ts`, `store_server.ts`, `server.data.ts`
 
-* **PascalCase Suffixes:** Append the service name directly to the end of the filename.
-	- Examples: `AuthServer.ts`, `InputClient.ts`, `StoreShared.ts`
+* **CamelCase & PascalCase:** Prepend or append the mapped service name directly to the filename
+	- Examples: `inputClient.ts`, `storeServer.ts`, `serverData.ts`
 
-	**Note:** *By default, Rogen strips the suffix for the final module name (e.g. `DataServer.ts` becomes `Data` in Roblox). This behavior can be configured.*
+	**Note:** *By default, Rogen strips the routing keyword from the final module name (e.g., `serverData.ts` and `data.server.ts` become `Data` and `data`, respectively, in Roblox). This behavior can be configured.*
 
 ### 3. Default
 If neither matches, the file defaults to `ReplicatedStorage`.
@@ -55,7 +55,7 @@ Rogen is distributed as a standalone CLI tool. Install it into your project usin
 **Rokit (`rokit.toml`)**
 ```toml
 [tools]
-rogen = "ldgerrits/rogen@1.2.2"
+rogen = "ldgerrits/rogen@1.3.0"
 ```
 
 ### 2. Configuration (.rogen.json)
@@ -66,7 +66,7 @@ Here is a default configuration structure that works for both roblox-ts and luau
 ```json
 {
 	"source": ["src"],
-	"keepSuffixes": false,
+	"keepRouteNames": false,
 	"luau": { 
 		"output": "default.project.json", 
 		"build": "src"
@@ -122,7 +122,7 @@ Here is a default configuration structure that works for both roblox-ts and luau
 | <custom_mode>  | You can define your own custom pipeline modes (e.g., "lute") by adding a new key. Custom modes must include an output and a build value.                                                                                                                       |
 | template            | The base Rojo tree template. Any standard Rojo `default.project.json` fields (like `name`, `globIgnorePaths`, or a custom `tree`) placed here will be safely merged with Rogen's auto-generated paths. You can also specify a path to a JSON file with a Rojo tree! |
 | aliases             | An object allowing you to define custom suffix or folder routing mappings. You can use this to register new keywords (e.g., "Controller": "StarterPlayerScripts") or overwrite Rogen's default service routing behaviors.                                           |
-| keepSuffixes        | A boolean flag (defaults to false). When set to true, Rogen will preserve your routing suffixes in the script names instead of stripping them out.                                                                                                                  |
+| keepRouteNames        | A boolean flag (defaults to false). When set to true, Rogen will preserve your routing suffixes in the script names instead of stripping them out.                                                                                                                  |
 
 ### 3. CLI Usage
 You can run Rogen with optional arguments to cleanly override your configurations on the fly:
@@ -143,7 +143,7 @@ You can run Rogen with optional arguments to cleanly override your configuration
 
 - `-o, --output <path>`: Override the name and destination of the final generated Rojo .project.json file.
 
-- `-k, --keepSuffixes`: Do not strip routing suffixes (e.g., server, client) from names.
+- `-k, --keepRouteNames`: Do not strip routing prefixes or suffixes (e.g., server, client) from names.
 
 - `-w, --watch`: Watch the source directory for changes, automatically regenerating your project files.
 

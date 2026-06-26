@@ -68,8 +68,8 @@ describe("Router Logic", () => {
 		expect(result2.nodeName).toBe("Combat");
 	});
 
-	it("should retain routing suffixes in nodeName when keepSuffixes is true, except for .server and .client", () => {
-		const keepSuffixContext = { ...baseContext, keepSuffixes: true };
+	it("should retain routing suffixes in nodeName when keepRouteNames is true, except for .server and .client", () => {
+		const keepSuffixContext = { ...baseContext, keepRouteNames: true };
 		
 		// .server (must strip)
 		const result1 = resolveRoute("systems/Combat.server.lua", false, keepSuffixContext);

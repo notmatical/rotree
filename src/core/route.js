@@ -7,7 +7,7 @@ const {
 const { toPosix } = require("./tree");
 
 function resolveRoute(relativePath, isInit, context) {
-	const { emitLegacyScripts, isTsProject, build, routingMaps, keepSuffixes } = context;
+	const { emitLegacyScripts, isTsProject, build, routingMaps, keepRouteNames } = context;
 	const { mergedServices, lowerCaseMap, separatorSuffixRegex, pascalCaseSuffixRegex, prefixRegex } = routingMaps;
 
 	const parts = relativePath.split(/[\\/]/)
@@ -92,11 +92,11 @@ function resolveRoute(relativePath, isInit, context) {
 		}
 		projectPath = toPosix(path.join(build, compiledRelativePath));
 		if (mappedService) {
-			let shouldStrip = !keepSuffixes;
+			let shouldStrip = !keepRouteNames;
 
 			// Rojo relies on '.server' and '.client' explicitly for script types.
-			// Even if keepSuffixes is true, we must strip these exact dot-prefixes.
-			if (keepSuffixes && sepSuffixMatch) {
+			// Even if keepRouteNames is true, we must strip these exact dot-prefixes.
+			if (keepRouteNames && sepSuffixMatch) {
 				const exactMatch = sepSuffixMatch[0].toLowerCase();
 				if (exactMatch === ".server" || exactMatch === ".client") {
 					shouldStrip = true;
