@@ -68,23 +68,31 @@ function resolveRoute(relativePath, isInit, context) {
 		const suffix = sepSuffixMatch[1].toLowerCase();
 		mappedService = lowerCaseMap[suffix];
 		matchedLength = sepSuffixMatch[0].length;
-		if (!isInit && serviceAliases.has(suffix)) environment = suffix;
+		if (!isInit && serviceAliases.has(suffix)) {
+			environment = suffix;
+		}
 	} else if (pascalSuffixMatch) {
 		const suffix = pascalSuffixMatch[1].toLowerCase();
 		mappedService = mergedServices[pascalSuffixMatch[1]];
 		matchedLength = pascalSuffixMatch[0].length;
-		if (!isInit && serviceAliases.has(suffix)) environment = suffix;
+		if (!isInit && serviceAliases.has(suffix)) {
+			environment = suffix;
+		}
 	} 
 	// Prefix routing
 	else if (prefixMatch) {
 		const prefix = prefixMatch[1].toLowerCase();
 		mappedService = lowerCaseMap[prefix];
 		matchedLength = prefixMatch[0].length;
-		if (!isInit && serviceAliases.has(prefix)) environment = prefix;
+		if (!isInit && serviceAliases.has(prefix)) {
+			environment = prefix;
+		}
 		isPrefix = true;
 	}
 
-	if (mappedService) targetService = mappedService;
+	if (mappedService) {
+		targetService = mappedService;
+	}
 
 	// Resolve namespace wrapper folder
 	let wrapperFolder = "shared";

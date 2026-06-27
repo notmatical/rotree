@@ -161,3 +161,85 @@ describe("Marker File Routing", () => {
 		expect(result.virtualParts).not.toContain("client");
 	});
 });
+
+describe("Routing (Last Is King)", () => {
+	const baseContext = {
+		emitLegacyScripts: true,
+		isTsProject: false,
+		build: "src",
+		routingMaps: generateRoutingMaps(),
+		directoryMarkers: {}
+	};
+
+	it("Deepest folder keyword wins over shallow folder keyword", () => {
+		const context = { ...baseContext };
+		// Shallow is 'client' (StarterPlayerScripts), Deep is 'server' (ServerScriptService)
+		const result = resolveRoute("client/systems/server/main.lua", false, context);
+		
+		expect(result.targetService).toBe("ServerScriptService");
+	});
+
+	it("Deep folder marker wins over shallow root marker", () => {
+		const context = { 
+			...baseContext, 
+			directoryMarkers: { "": "client", "systems": "server" } 
+		};
+		const result = resolveRoute("systems/main.lua", false, context);
+		
+		expect(result.targetService).toBe("ServerScriptService");
+	});
+
+	it("Folder marker wins over folder keyword", () => {
+		// 'client' is a keyword, but it explicitly contains a '.server' marker file
+		const context = { ...baseContext, directoryMarkers: { "client": "server" } };
+		const result = resolveRoute("client/main.lua", false, context);
+		
+		expect(result.targetService).toBe("ServerScriptService");
+	});
+
+	it("File suffix wins over folder marker", () => {
+		// The folder says ReplicatedStorage (shared), but the file says ServerScriptService (server)
+		const context = { ...baseContext, directoryMarkers: { "network": "shared" } };
+		const result = resolveRoute("network/api.server.lua", false, context);
+		
+		expect(result.targetService).toBe("ServerScriptService");
+		expect(result.wrapperFolder).toBe("server");
+	});
+
+	it("File suffix wins over folder keyword", () => {
+		const context = { ...baseContext };
+		const result = resolveRoute("client/ui/button.server.lua", false, context);
+		
+		expect(result.targetService).toBe("ServerScriptService");
+		expect(result.wrapperFolder).toBe("server");
+	});
+
+	it("File prefix wins over root marker", () => {
+		// The root directory says StarterPlayerScripts, but the prefix says ServerScriptService
+		const context = { ...baseContext, directoryMarkers: { "": "client" } };
+		const result = resolveRoute("server.combat.lua", false, context);
+		
+		expect(result.targetService).toBe("ServerScriptService");
+		expect(result.wrapperFolder).toBe("server");
+	});
+
+	it("Deepest keyword wins, all keywords are stripped, no virtual parts left", () => {
+		const context = { ...baseContext };
+		const result = resolveRoute("server/client/shared/test.lua", false, context);
+		
+		expect(result.targetService).toBe("ReplicatedStorage");
+		expect(result.wrapperFolder).toBe("shared");
+		expect(result.virtualParts).toEqual([]);
+		expect(result.nodeName).toBe("test");
+	});
+
+	it("Deepest keyword wins, standard folders in between are preserved", () => {
+		const context = { ...baseContext };
+		const result = resolveRoute("server/inventory/shared/test.lua", false, context);
+		
+		expect(result.targetService).toBe("ReplicatedStorage");
+		expect(result.wrapperFolder).toBe("shared");
+		expect(result.virtualParts).toEqual(["inventory"]);
+		expect(result.nodeName).toBe("test");
+	});
+});

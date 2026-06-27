@@ -16,28 +16,35 @@ Moreover, Rogen allows you to merge multiple directories into a single Rojo proj
 **Note:** *If you use luau, it is highly recommended to set up [darklua](https://github.com/seaofvoices/darklua) for improved string requires.*
 
 ## Automatic Routing
-Rogen determines a file's destination using three main strategies. Folder-based routing takes precedence over suffix-based routing.
+Rogen determines where a file belongs by looking at your folder structure, hidden marker files, and file names. 
 
-### 1. Folder Context (Primary)
-If a file is located within a folder named after a service or a keyword, it is automatically routed to that service.
-* **Keywords:** `server`, `client`, `shared`
-* **Services:** `ReplicatedFirst`, `ServerStorage`, etc.
-* **Behavior:** All files and sub-folders within these directories inherit the target service.
+When multiple rules apply to the same file, Rogen follows a simple principle: **the most specific instruction wins.** An explicit rule placed directly on a file will always override a general rule set by its parent folder.
 
-### 2. Suffix Context (Secondary)
-If a file is in a generic folder, Rogen inspects the filename for a routing prefix or suffix. This allows you to define a file's destination without moving it into a specific sub-folder.
-* **Delimited:** Use a separator (dot, hyphen, or underscore) before or after the base name
-	- Examples: `input-client.ts`, `store_server.ts`, `server.data.ts`
+Here are the routing strategies, listed from lowest to highest priority:
 
-* **CamelCase & PascalCase:** Prepend or append the mapped service name directly to the filename
-	- Examples: `inputClient.ts`, `storeServer.ts`, `serverData.ts`
+### 1. Folder Name
+If a folder is named after a routing keyword (`server`, `client`, `shared`) or a Roblox service (e.g., `ReplicatedFirst`), all files within it inherit that destination.
+* **Behavior:** Rogen consumes the routing keyword and strips it from the final generated path.
+* **Example:** `src/combat/client/combatController.luau` becomes `StarterPlayerScripts/client/combat/combatController.luau`.
 
-	**Note:** *By default, Rogen strips the routing keyword from the final module name (e.g., `serverData.ts` and `data.server.ts` become `Data` and `data`, respectively, in Roblox). This behavior can be configured.*
+### 2. Marker File
+To route a folder, you can also place an empty marker file (e.g., `.server`, `.client`, `.shared`) directly inside the directory.
+* **Behavior:** The entire folder is routed to that service, but the folder's name is preserved in the Roblox tree.
+* **Example:** A folder named `AntiCheat` containing a `.server` marker file will be routed to `ServerScriptService/server/AntiCheat`.
 
-### 3. Default
-If neither matches, the file defaults to `ReplicatedStorage`.
+### 3. File Name
+To route a specific file differently than its parent folder, use a routing prefix or suffix. File affixes are absolute and will always override folder names and marker files.
+* **Delimited:** Use a separator (dot, hyphen, or underscore) before or after the base name.
+	* **Examples:** input-client.ts, server.data.ts, 
+* **CamelCase & PascalCase:** Prepend or append the mapped keyword directly to the filename.
+	* **Examples:** inputClient.ts, serverData.ts
 
-**Note:** *If a folder contains an initialization file (like `init.luau` or `index.ts`), Rogen routes the folder itself but will not apply any further routing to its nested contents. This ensures full compatibility with how Rojo handles folders with initialization scripts.*
+**Note:** *By default, Rogen strips the routing keyword from the final module name (e.g., `serverData.ts` and `data.server.ts` become `Data` and `data`, respectively). You can disable this behavior using the `--keepRouteNames` flag*.
+
+### 3. Default Fallback
+If no routing rules or keywords are found anywhere in the path, the file defaults to `ReplicatedStorage`.
+
+**Important Note for `init` Files:** *If a folder contains an initialization file (like `init.luau` or `index.ts`), Rogen routes the folder itself but will not apply any further routing to its nested contents. This ensures full compatibility with how Rojo handles folders containing initialization scripts.*
 
 ## Merging of Multiple Sources
 Rogen supports passing an array of directories to the source config (or passing the -s CLI flag multiple times). 
