@@ -7,8 +7,8 @@ const {
 const { toPosix } = require("./tree");
 
 function resolveRoute(relativePath, isInit, context) {
-	const { emitLegacyScripts, isTsProject, build, routingMaps, keepSuffixes } = context;
-	const { mergedServices, lowerCaseMap, separatorRegex, pascalCaseRegex } = routingMaps;
+	const { emitLegacyScripts, isTsProject, build, routingMaps, keepRouteNames, directoryMarkers } = context;
+	const { mergedServices, lowerCaseMap, separatorSuffixRegex, pascalCaseSuffixRegex, prefixRegex } = routingMaps;
 
 	const parts = relativePath.split(/[\\/]/)
 	const filename = parts.pop();
@@ -19,12 +19,34 @@ function resolveRoute(relativePath, isInit, context) {
 	let lastRouteKeyword = null;
 	let environment = null;
 
+	// Marker routing
+	if (directoryMarkers && directoryMarkers[""]) {
+		const rootMarker = directoryMarkers[""];
+		targetService = lowerCaseMap[rootMarker];
+		lastRouteKeyword = rootMarker;
+		if (serviceAliases.has(rootMarker)) environment = rootMarker;
+	}
+
+	let currentPath = "";
+
 	// Folder routing
 	for (const part of parts) {
+		currentPath = currentPath ? `${currentPath}/${part}` : part;
+
 		const lowerPart = part.toLowerCase();
 		const matchedService = lowerCaseMap[lowerPart];
+		const marker = directoryMarkers ? directoryMarkers[currentPath] : undefined;
 
-		if (matchedService) {
+		if (marker) {
+			targetService = lowerCaseMap[marker];
+			lastRouteKeyword = marker;
+			if (serviceAliases.has(marker)) environment = marker;
+			
+			// Strip if the folder name is also a routing keyword (like "client")
+			if (!matchedService) {
+				virtualParts.push(part);
+			}
+		} else if (matchedService) {
 			targetService = matchedService;
 			lastRouteKeyword = lowerPart;
 			if (serviceAliases.has(lowerPart)) environment = lowerPart;
@@ -33,25 +55,44 @@ function resolveRoute(relativePath, isInit, context) {
 		}
 	}
 
-	let matchedSuffixLength = 0;
+	let matchedLength = 0;
 	let mappedService = null;
-	const sepMatch = basename.match(separatorRegex);
-	const pascalMatch = basename.match(pascalCaseRegex);
+	let isPrefix = false;
+
+	const sepSuffixMatch = basename.match(separatorSuffixRegex);
+	const pascalSuffixMatch = basename.match(pascalCaseSuffixRegex);
+	const prefixMatch = basename.match(prefixRegex);
 
 	// Suffix routing
-	if (sepMatch) {
-		const suffix = sepMatch[1].toLowerCase();
+	if (sepSuffixMatch) {
+		const suffix = sepSuffixMatch[1].toLowerCase();
 		mappedService = lowerCaseMap[suffix];
-		matchedSuffixLength = sepMatch[0].length;
-		if (!isInit && serviceAliases.has(suffix)) environment = suffix;
-	} else if (pascalMatch) {
-		const suffix = pascalMatch[1].toLowerCase();
-		mappedService = mergedServices[pascalMatch[1]];
-		matchedSuffixLength = pascalMatch[0].length;
-		if (!isInit && serviceAliases.has(suffix)) environment = suffix;
+		matchedLength = sepSuffixMatch[0].length;
+		if (!isInit && serviceAliases.has(suffix)) {
+			environment = suffix;
+		}
+	} else if (pascalSuffixMatch) {
+		const suffix = pascalSuffixMatch[1].toLowerCase();
+		mappedService = mergedServices[pascalSuffixMatch[1]];
+		matchedLength = pascalSuffixMatch[0].length;
+		if (!isInit && serviceAliases.has(suffix)) {
+			environment = suffix;
+		}
+	} 
+	// Prefix routing
+	else if (prefixMatch) {
+		const prefix = prefixMatch[1].toLowerCase();
+		mappedService = lowerCaseMap[prefix];
+		matchedLength = prefixMatch[0].length;
+		if (!isInit && serviceAliases.has(prefix)) {
+			environment = prefix;
+		}
+		isPrefix = true;
 	}
 
-	if (mappedService && !lastRouteKeyword) targetService = mappedService;
+	if (mappedService) {
+		targetService = mappedService;
+	}
 
 	// Resolve namespace wrapper folder
 	let wrapperFolder = "shared";
@@ -81,19 +122,23 @@ function resolveRoute(relativePath, isInit, context) {
 		}
 		projectPath = toPosix(path.join(build, compiledRelativePath));
 		if (mappedService) {
-			let shouldStrip = !keepSuffixes;
+			let shouldStrip = !keepRouteNames;
 
 			// Rojo relies on '.server' and '.client' explicitly for script types.
-			// Even if keepSuffixes is true, we must strip these exact dot-prefixes.
-			if (keepSuffixes && sepMatch) {
-				const exactMatch = sepMatch[0].toLowerCase();
+			// Even if keepRouteNames is true, we must strip these exact dot-prefixes.
+			if (keepRouteNames && sepSuffixMatch) {
+				const exactMatch = sepSuffixMatch[0].toLowerCase();
 				if (exactMatch === ".server" || exactMatch === ".client") {
 					shouldStrip = true;
 				}
 			}
 
 			if (shouldStrip) {
-				nodeName = basename.slice(0, -matchedSuffixLength);
+				if (isPrefix) {
+					nodeName = basename.slice(matchedLength); 
+				} else {
+					nodeName = basename.slice(0, -matchedLength); 
+				}
 			}
 		} 
 	}

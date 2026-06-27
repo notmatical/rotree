@@ -31,7 +31,7 @@ function loadAndValidateConfig(configPath) {
 	}
 
 	const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-	const standardKeys = ["source", "template", "luau", "ts", "darklua", "aliases", "keepSuffixes"];
+	const standardKeys = ["source", "template", "luau", "ts", "darklua", "aliases", "keepRouteNames"];
 
 	for (const key in config) {
 		if (!standardKeys.includes(key)) {
@@ -49,8 +49,8 @@ function loadAndValidateConfig(configPath) {
 			throw new Error(`\nConfiguration Error: 'source' must be a string or an array of strings.\n`);
 		} else if (key === "template" && typeof config[key] !== "object" && typeof config[key] !== "string") {
 			throw new Error(`\nConfiguration Error: 'template' must be an inline object or a string path to a JSON file.\n`);
-		} else if (key === "keepSuffixes" && typeof config[key] !== "boolean") {
-			throw new Error(`\nConfiguration Error: 'keepSuffixes' must be a boolean.\n`);
+		} else if (key === "keepRouteNames" && typeof config[key] !== "boolean") {
+			throw new Error(`\nConfiguration Error: 'keepRouteNames' must be a boolean.\n`);
 		}
 	}
 
@@ -86,7 +86,7 @@ function getEnvironment() {
 
 function resolveActiveModes(config, hasConfig, cliMode, env) {
 	const baseLanguage = env.isTsProject ? (config.ts || defaultConfig.ts) : (config.luau || defaultConfig.luau);
-	const nonModeKeys = new Set(["source", "template", "aliases", "keepSuffixes"]);
+	const nonModeKeys = new Set(["source", "template", "aliases", "keepRouteNames"]);
 	const activeModes = [];
 
 	if (hasConfig) {

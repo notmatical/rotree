@@ -14,10 +14,10 @@ Options:
   -c, --config <path>   Specify a custom Rogen config file path
   -m, --mode <mode>     Specify the mode to run (luau, ts, or darklua)
   -s, --source <path>   Override the directory containing your uncompiled code
-  -t, --template <path> Specify a path to a JSON file containing your base Rojo blueprint
+  -t, --template <path> Specify a path to a JSON file containing your base Rojo tree
   -b, --build <path>    Override the directory where your compiled/transpiled code lands
   -o, --output <path>   Override the name and destination of the final generated Rojo project file
-  -k, --keepSuffixes    Do not strip routing suffixes (e.g., server, client) from names
+  -k, --keepRouteNames  Do not strip routing prefixes or suffixes (e.g., server, client) from names
 	`);
 }
 
@@ -32,7 +32,7 @@ function parseCliArgs(args = process.argv.slice(2)) {
 		output: { type: "string", short: "o" },
 		build: { type: "string", short: "b" },
 		watch: { type: "boolean", short: "w" },
-		keepSuffixes: { type: "boolean", short: "k" }
+		keepRouteNames: { type: "boolean", short: "k" }
 	};
 
 	const { values } = parseArgs({ args, options, strict: false });
