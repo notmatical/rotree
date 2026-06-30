@@ -1,17 +1,24 @@
-const fs = require("fs");
-const path = require("path");
-const { build } = require("./build");
+import fs from "fs";
+import path from "path";
+import { build } from "./build.js";
+import { CliArgs, Environment, RogenConfig, RogenMode, RojoTree } from "../types.js";
 
-function execute(sourcePaths, env, activeModes, baseProjectTree, config, cliArgs) {
+export function execute(
+	sourcePaths: string[], 
+	env: Environment, 
+	activeModes: RogenMode[], 
+	baseProjectTree: RojoTree, 
+	config: RogenConfig, 
+	cliArgs: CliArgs
+): void {
 	try {
 		for (const targetConfig of activeModes) {
 			const buildResult = build(targetConfig, baseProjectTree, config, env, sourcePaths, cliArgs);
 
-			// Add stub files so Rojo and the roblox-ts compiler don't crash 
+			// Add stub files so Rojo and the roblox-ts compiler don't crash
 			if (buildResult.missingPaths.length > 0) {
 				for (const item of buildResult.missingPaths) {
 					const ext = path.extname(item.absolutePath).toLowerCase();
-					
 					if (ext === '.luau' || ext === '.lua') {
 						const dir = path.dirname(item.absolutePath);
 						if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
@@ -38,9 +45,11 @@ function execute(sourcePaths, env, activeModes, baseProjectTree, config, cliArgs
 				console.log(`   Output:    ${buildResult.output}\n`);
 			}
 		}
-	} catch (err) {
-		console.error(`\nBuild Failed: ${err.message}\n`);
+	} catch (error) {
+		if (error instanceof Error) {
+			console.error(`\nBuild Failed: ${error.message}\n`);
+		} else {
+			console.error(`\nBuild Failed: Unknown Error\n`);
+		}
 	}
 }
-
-module.exports = { execute };

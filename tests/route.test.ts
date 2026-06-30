@@ -1,11 +1,16 @@
-const { resolveRoute } = require("../src/core/route");
-const { generateRoutingMaps } = require("../src/constants");
+import { resolveRoute } from "../src/core/route.js";
+import { generateRoutingMaps } from "../src/constants.js";
+import { RouteContext } from "../src/types.js";
 
 describe("Router Logic", () => {
-	const baseContext = {
+	const baseContext: RouteContext = {
+		source: "src",
+		build: "src",
+		output: "test.project.json",
+		name: "test-game",
 		emitLegacyScripts: true,
 		isTsProject: false,
-		build: "src",
+		keepRouteNames: false,
 		routingMaps: generateRoutingMaps()
 	};
 
@@ -34,7 +39,7 @@ describe("Router Logic", () => {
 	});
 
 	it("should swap extensions to .luau for TypeScript projects", () => {
-		const tsContext = { ...baseContext, isTsProject: true, build: "out" };
+		const tsContext: RouteContext = { ...baseContext, isTsProject: true, build: "out" };
 		const result = resolveRoute("components/Button.ts", false, tsContext);
 		
 		expect(result.projectPath).toBe("out/components/Button.luau");
@@ -48,7 +53,7 @@ describe("Router Logic", () => {
 	});
 
 	it("should support custom config aliases for suffixes and overriding default mappings", () => {
-		const customContext = {
+		const customContext: RouteContext = {
 			...baseContext,
 			routingMaps: generateRoutingMaps({
 				"Controller": "StarterPlayerScripts",
@@ -56,34 +61,29 @@ describe("Router Logic", () => {
 			})
 		};
 
-		// Custom suffix mapping test (PascalCase)
 		const result1 = resolveRoute("ui/PlayerController.lua", false, customContext);
 		expect(result1.targetService).toBe("StarterPlayerScripts");
 		expect(result1.nodeName).toBe("Player");
 		expect(result1.wrapperFolder).toBe("client");
 
-		//  Overwritten default mapping test (Separator suffix)
 		const result2 = resolveRoute("systems/Combat.server.lua", false, customContext);
 		expect(result2.targetService).toBe("ReplicatedStorage");
 		expect(result2.nodeName).toBe("Combat");
 	});
 
 	it("should retain routing suffixes in nodeName when keepRouteNames is true, except for .server and .client", () => {
-		const keepSuffixContext = { ...baseContext, keepRouteNames: true };
+		const keepSuffixContext: RouteContext = { ...baseContext, keepRouteNames: true };
 		
-		// .server (must strip)
 		const result1 = resolveRoute("systems/Combat.server.lua", false, keepSuffixContext);
 		expect(result1.targetService).toBe("ServerScriptService");
 		expect(result1.nodeName).toBe("Combat");
 		expect(result1.wrapperFolder).toBe("server");
 
-		// _server (must retain)
 		const result2 = resolveRoute("systems/Combat_server.lua", false, keepSuffixContext);
 		expect(result2.targetService).toBe("ServerScriptService");
 		expect(result2.nodeName).toBe("Combat_server");
 
-		// PascalCase suffix test (must retain)
-		const customContext = {
+		const customContext: RouteContext = {
 			...keepSuffixContext,
 			routingMaps: generateRoutingMaps({ "Controller": "StarterPlayerScripts" })
 		};
@@ -116,18 +116,21 @@ describe("Router Logic", () => {
 	});
 });
 
-
 describe("Marker File Routing", () => {
-	const baseContext = {
+	const baseContext: RouteContext = {
+		source: "src",
+		build: "src",
+		output: "test.project.json",
+		name: "test-game",
 		emitLegacyScripts: true,
 		isTsProject: false,
-		build: "src",
+		keepRouteNames: false,
 		routingMaps: generateRoutingMaps(),
 		directoryMarkers: {}
 	};
 
 	it("should route based on a root marker file", () => {
-		const context = { ...baseContext, directoryMarkers: { "": "server" } };
+		const context: RouteContext = { ...baseContext, directoryMarkers: { "": "server" } };
 		const result = resolveRoute("Combat.lua", false, context);
 		
 		expect(result.targetService).toBe("ServerScriptService");
@@ -135,52 +138,51 @@ describe("Marker File Routing", () => {
 	});
 
 	it("should route based on a directory marker file and preserve the folder name", () => {
-		const context = { ...baseContext, directoryMarkers: { "AntiCheat": "server" } };
+		const context: RouteContext = { ...baseContext, directoryMarkers: { "AntiCheat": "server" } };
 		const result = resolveRoute("AntiCheat/scanner.lua", false, context);
 		
 		expect(result.targetService).toBe("ServerScriptService");
-		// The folder "AntiCheat" should be preserved in the tree because it didn't trigger the route
 		expect(result.virtualParts).toContain("AntiCheat");
 	});
 
 	it("should prioritize file suffix over a directory marker", () => {
-		const context = { ...baseContext, directoryMarkers: { "network": "shared" } };
+		const context: RouteContext = { ...baseContext, directoryMarkers: { "network": "shared" } };
 		const result = resolveRoute("network/api.server.lua", false, context);
-		
-		// The file suffix now overrides the folder marker, forcing it to the server
 		expect(result.targetService).toBe("ServerScriptService");
 		expect(result.wrapperFolder).toBe("server"); 
 	});
 
 	it("should prioritize directory marker over a routing folder name and strip the folder name", () => {
-		const context = { ...baseContext, directoryMarkers: { "client": "server" } };
+		const context: RouteContext = { ...baseContext, directoryMarkers: { "client": "server" } };
 		const result = resolveRoute("client/main.lua", false, context);
 		
 		expect(result.targetService).toBe("ServerScriptService");
-		// Because "client" is a routing keyword, it should be stripped, even though a marker set the route!
 		expect(result.virtualParts).not.toContain("client");
 	});
 });
 
 describe("Routing (Last Is King)", () => {
-	const baseContext = {
+	const baseContext: RouteContext = {
+		source: "src",
+		build: "src",
+		output: "test.project.json",
+		name: "test-game",
 		emitLegacyScripts: true,
 		isTsProject: false,
-		build: "src",
+		keepRouteNames: false,
 		routingMaps: generateRoutingMaps(),
 		directoryMarkers: {}
 	};
 
 	it("Deepest folder keyword wins over shallow folder keyword", () => {
-		const context = { ...baseContext };
-		// Shallow is 'client' (StarterPlayerScripts), Deep is 'server' (ServerScriptService)
+		const context: RouteContext = { ...baseContext };
 		const result = resolveRoute("client/systems/server/main.lua", false, context);
 		
 		expect(result.targetService).toBe("ServerScriptService");
 	});
 
 	it("Deep folder marker wins over shallow root marker", () => {
-		const context = { 
+		const context: RouteContext = { 
 			...baseContext, 
 			directoryMarkers: { "": "client", "systems": "server" } 
 		};
@@ -190,16 +192,14 @@ describe("Routing (Last Is King)", () => {
 	});
 
 	it("Folder marker wins over folder keyword", () => {
-		// 'client' is a keyword, but it explicitly contains a '.server' marker file
-		const context = { ...baseContext, directoryMarkers: { "client": "server" } };
+		const context: RouteContext = { ...baseContext, directoryMarkers: { "client": "server" } };
 		const result = resolveRoute("client/main.lua", false, context);
 		
 		expect(result.targetService).toBe("ServerScriptService");
 	});
 
 	it("File suffix wins over folder marker", () => {
-		// The folder says ReplicatedStorage (shared), but the file says ServerScriptService (server)
-		const context = { ...baseContext, directoryMarkers: { "network": "shared" } };
+		const context: RouteContext = { ...baseContext, directoryMarkers: { "network": "shared" } };
 		const result = resolveRoute("network/api.server.lua", false, context);
 		
 		expect(result.targetService).toBe("ServerScriptService");
@@ -207,7 +207,7 @@ describe("Routing (Last Is King)", () => {
 	});
 
 	it("File suffix wins over folder keyword", () => {
-		const context = { ...baseContext };
+		const context: RouteContext = { ...baseContext };
 		const result = resolveRoute("client/ui/button.server.lua", false, context);
 		
 		expect(result.targetService).toBe("ServerScriptService");
@@ -215,8 +215,7 @@ describe("Routing (Last Is King)", () => {
 	});
 
 	it("File prefix wins over root marker", () => {
-		// The root directory says StarterPlayerScripts, but the prefix says ServerScriptService
-		const context = { ...baseContext, directoryMarkers: { "": "client" } };
+		const context: RouteContext = { ...baseContext, directoryMarkers: { "": "client" } };
 		const result = resolveRoute("server.combat.lua", false, context);
 		
 		expect(result.targetService).toBe("ServerScriptService");
@@ -224,7 +223,7 @@ describe("Routing (Last Is King)", () => {
 	});
 
 	it("Deepest keyword wins, all keywords are stripped, no virtual parts left", () => {
-		const context = { ...baseContext };
+		const context: RouteContext = { ...baseContext };
 		const result = resolveRoute("server/client/shared/test.lua", false, context);
 		
 		expect(result.targetService).toBe("ReplicatedStorage");
@@ -234,7 +233,7 @@ describe("Routing (Last Is King)", () => {
 	});
 
 	it("Deepest keyword wins, standard folders in between are preserved", () => {
-		const context = { ...baseContext };
+		const context: RouteContext = { ...baseContext };
 		const result = resolveRoute("server/inventory/shared/test.lua", false, context);
 		
 		expect(result.targetService).toBe("ReplicatedStorage");

@@ -1,4 +1,4 @@
-const { parseCliArgs } = require("../src/cli");
+import { parseCliArgs } from "../src/cli.js";
 
 describe("CLI Argument Parsing", () => {
 	it("should parse full flags correctly", () => {
@@ -23,7 +23,7 @@ describe("CLI Argument Parsing", () => {
 		const args = ["-s", "src/core", "-s", "src/chapter1"];
 		const options = parseCliArgs(args);
 		
-		expect(options.source).toEqual(["src/core", "src/chapter1"]); // New multi-source test
+		expect(options.source).toEqual(["src/core", "src/chapter1"]);
 	});
 
 	it("should return undefined for omitted flags", () => {

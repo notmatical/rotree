@@ -1,12 +1,12 @@
-const fs = require("fs");
-const path = require("path");
-const chokidar = require("chokidar");
-const { printHelp, parseCliArgs } = require("./cli");
-const { resolveConfigPath, loadAndValidateConfig, loadProjectTree, getEnvironment, resolveActiveModes } = require("./config");
-const { execute } = require("./core/execute");
-const { defaultConfig } = require("./constants");
+import fs from "fs";
+import path from "path";
+import chokidar from "chokidar";
+import { printHelp, parseCliArgs } from "./cli.js";
+import { resolveConfigPath, loadAndValidateConfig, loadProjectTree, getEnvironment, resolveActiveModes } from "./config.js";
+import { execute } from "./core/execute.js";
+import { defaultConfig } from "./constants.js";
 
-async function main() {
+async function main(): Promise<void> {
 	const cliArgs = parseCliArgs();
 
 	if (cliArgs.help) {
@@ -49,13 +49,12 @@ async function main() {
 
 	if (cliArgs.watch) {
 		console.log(`Rogen watching for file changes in: "${sourceDirs.join(', ')}"... (Press Ctrl+C to stop)`);
-		
-		let debounceTimeout;
+		let debounceTimeout: NodeJS.Timeout;
 
 		const watcher = chokidar.watch(sourcePaths, {
 			persistent: true,
 			ignoreInitial: true,
-			ignored: /(^|[\/\\])\../,
+			ignored: /(^|\/|\\)\../,
 		});
 
 		watcher.on('all', () => {
@@ -65,15 +64,15 @@ async function main() {
 			}, 100);
 		});
 
-		watcher.on('error', error => console.error(`Error in watcher: ${error}`));
+		watcher.on('error', (error) => console.error(`Error in watcher: ${error}`));
 		
 		await new Promise(() => {}); // Keep alive
 	}
 }
 
-module.exports = () => {
+export default function run(): void {
 	main().catch((error) => {
 		console.error(`\nBuild Failed: ${error.message}\n`);
 		process.exit(1);
 	});
-};
+}

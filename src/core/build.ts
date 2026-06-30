@@ -1,17 +1,24 @@
-const fs = require("fs");
-const path = require("path");
-const { getOrCreateNode, pruneObject, sortObject, findMissingPaths } = require("./tree");
-const { resolveRoute } = require("./route");
-const { serviceParents, generateRoutingMaps } = require("../constants");
+import fs from "fs";
+import path from "path";
+import { getOrCreateNode, pruneObject, sortObject, findMissingPaths } from "./tree.js";
+import { resolveRoute } from "./route.js";
+import { serviceParents, generateRoutingMaps } from "../constants.js";
+import { BuildResult, CliArgs, Environment, RogenConfig, RogenMode, RojoNode, RojoTree, RouteContext, RoutingMaps } from "../types.js";
 
-const isScript = (filename) => /\.(tsx?|luau|lua)$/i.test(filename) && !filename.toLowerCase().endsWith(".d.ts");
-const isModel = (filename) => /\.(rbxm|rbxmx)$/i.test(filename);
-const isValidSource = (filename) => isScript(filename) || isModel(filename);
-const isInitFile = (filename) => isScript(filename) && /^(index|init)([\.-][a-z0-9_]+)?\./i.test(filename);
+const isScript = (filename: string): boolean => /\.(tsx?|luau|lua)$/i.test(filename) && !filename.toLowerCase().endsWith(".d.ts");
+const isModel = (filename: string): boolean => /\.(rbxm|rbxmx)$/i.test(filename);
+const isValidSource = (filename: string): boolean => isScript(filename) || isModel(filename);
+const isInitFile = (filename: string): boolean => isScript(filename) && /^(index|init)([.-][a-z0-9_]+)?\./i.test(filename);
 
-function walk(dir, sourcePath, directoryMarkers, routingMaps, callback) {
+function walk(
+	dir: string, 
+	sourcePath: string, 
+	directoryMarkers: Record<string, string>, 
+	routingMaps: RoutingMaps, 
+	callback: (filepath: string, isInit: boolean) => void
+): void {
 	if (!fs.existsSync(dir)) return;
-	
+
 	const entries = fs.readdirSync(dir, { withFileTypes: true });
 
 	// Scan for marker files
@@ -27,10 +34,12 @@ function walk(dir, sourcePath, directoryMarkers, routingMaps, callback) {
 		}
 	}
 	
+	// Rojo expects a specific structure for folders with an init.luau file that we cannot deviate from.
+	// Because of this, we must return early if an initialization file has been found.
 	const initFile = entries.find((e) => e.isFile() && isInitFile(e.name));
 	if (initFile) {
 		callback(path.join(dir, initFile.name), true);
-		return; // Rojo auto-syncs the directory, skip explicit children
+		return; 
 	}
 
 	for (const entry of entries) {
@@ -43,15 +52,22 @@ function walk(dir, sourcePath, directoryMarkers, routingMaps, callback) {
 	}
 }
 
-function build(targetConfig, baseProjectTree, config, env, sourcePaths, cliArgs) {
-	const modeCopy = { ...targetConfig };
+export function build(
+	targetConfig: RogenMode, 
+	baseProjectTree: RojoTree, 
+	config: RogenConfig, 
+	env: Environment, 
+	sourcePaths: string[], 
+	cliArgs: CliArgs
+): BuildResult {
+	const modeCopy: RogenMode = { ...targetConfig };
 	if (cliArgs.output) modeCopy.output = cliArgs.output;
 	if (cliArgs.build) modeCopy.build = cliArgs.build;
 
-	const rojoTree = JSON.parse(JSON.stringify(baseProjectTree));
+	const rojoTree: RojoTree = JSON.parse(JSON.stringify(baseProjectTree));
 	rojoTree.tree = rojoTree.tree || { $className: "DataModel" };
 
-	const context = {
+	const context: RouteContext = {
 		source: config.source || "src",
 		...modeCopy,
 		isTsProject: env.isTsProject,
@@ -71,9 +87,9 @@ function build(targetConfig, baseProjectTree, config, env, sourcePaths, cliArgs)
 		const relativePath = path.relative(process.cwd(), sourcePath);
 		const segments = relativePath.split(path.sep);
 		const subPath = segments.length > 1 ? segments.slice(1).join(path.sep) : "";
-
-		const directoryMarkers = {};
-		const newContext = {
+		
+		const directoryMarkers: Record<string, string> = {};
+		const newContext: RouteContext = {
 			...context,
 			build: path.join(context.build, subPath),
 			directoryMarkers
@@ -96,15 +112,21 @@ function build(targetConfig, baseProjectTree, config, env, sourcePaths, cliArgs)
 				current = getOrCreateNode(current, part, "Folder");
 			}
 
-			current[nodeName] = { ...current[nodeName], $path: projectPath };
-			if (current[nodeName]["$className"] === "Folder") {
-				delete current[nodeName]["$className"];
+			const existingNode = (current[nodeName] as RojoNode) || {};
+			const newNode: RojoNode = { ...existingNode, $path: projectPath };
+			
+			if (newNode.$className === "Folder") {
+				delete newNode.$className;
 			}
+			
+			current[nodeName] = newNode;
 		});
 	}
 
-	const prunedTree = pruneObject(rojoTree, context.build);
-	const sortedTree = sortObject(prunedTree);
+	const prunedTree = pruneObject(rojoTree.tree, context.build);
+	rojoTree.tree = prunedTree;
+	
+	const sortedTree = sortObject(rojoTree);
 	const missingPaths = findMissingPaths(sortedTree.tree, context.build);
 
 	return {
@@ -116,5 +138,3 @@ function build(targetConfig, baseProjectTree, config, env, sourcePaths, cliArgs)
 		fileCount
 	};
 }
-
-module.exports = { build };
