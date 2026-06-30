@@ -1,23 +1,32 @@
-const path = require("path");
-const { 
+import path from "path";
+import { 
 	serviceAliases, 
 	serverContainers, 
 	clientContainers
-} = require("../constants");
-const { toPosix } = require("./tree");
+} from "../constants.js";
+import { toPosix } from "./tree.js";
+import { RouteContext } from "../types.js";
 
-function resolveRoute(relativePath, isInit, context) {
+export interface RouteResolution {
+	targetService: string;
+	wrapperFolder: string;
+	virtualParts: string[];
+	nodeName: string;
+	projectPath: string;
+}
+
+export function resolveRoute(relativePath: string, isInit: boolean, context: RouteContext): RouteResolution {
 	const { emitLegacyScripts, isTsProject, build, routingMaps, keepRouteNames, directoryMarkers } = context;
 	const { mergedServices, lowerCaseMap, separatorSuffixRegex, pascalCaseSuffixRegex, prefixRegex } = routingMaps;
 
-	const parts = relativePath.split(/[\\/]/)
-	const filename = parts.pop();
+	const parts = relativePath.split(/[\\/]/);
+	const filename = parts.pop()!;
 	const basename = path.basename(filename, path.extname(filename));
-	const virtualParts = [];
+	const virtualParts: string[] = [];
 
 	let targetService = "ReplicatedStorage";
-	let lastRouteKeyword = null;
-	let environment = null;
+	let lastRouteKeyword: string | null = null;
+	let environment: string | null = null;
 
 	// Marker routing
 	if (directoryMarkers && directoryMarkers[""]) {
@@ -27,9 +36,8 @@ function resolveRoute(relativePath, isInit, context) {
 		if (serviceAliases.has(rootMarker)) environment = rootMarker;
 	}
 
-	let currentPath = "";
-
 	// Folder routing
+	let currentPath = "";
 	for (const part of parts) {
 		currentPath = currentPath ? `${currentPath}/${part}` : part;
 
@@ -42,7 +50,7 @@ function resolveRoute(relativePath, isInit, context) {
 			lastRouteKeyword = marker;
 			if (serviceAliases.has(marker)) environment = marker;
 			
-			// Strip if the folder name is also a routing keyword (like "client")
+			// Strip if the folder name is also a routing keyword
 			if (!matchedService) {
 				virtualParts.push(part);
 			}
@@ -56,14 +64,14 @@ function resolveRoute(relativePath, isInit, context) {
 	}
 
 	let matchedLength = 0;
-	let mappedService = null;
+	let mappedService: string | null = null;
 	let isPrefix = false;
 
 	const sepSuffixMatch = basename.match(separatorSuffixRegex);
 	const pascalSuffixMatch = basename.match(pascalCaseSuffixRegex);
 	const prefixMatch = basename.match(prefixRegex);
 
-	// Suffix routing
+	// Affix routing
 	if (sepSuffixMatch) {
 		const suffix = sepSuffixMatch[1].toLowerCase();
 		mappedService = lowerCaseMap[suffix];
@@ -78,9 +86,7 @@ function resolveRoute(relativePath, isInit, context) {
 		if (!isInit && serviceAliases.has(suffix)) {
 			environment = suffix;
 		}
-	} 
-	// Prefix routing
-	else if (prefixMatch) {
+	} else if (prefixMatch) {
 		const prefix = prefixMatch[1].toLowerCase();
 		mappedService = lowerCaseMap[prefix];
 		matchedLength = prefixMatch[0].length;
@@ -100,19 +106,19 @@ function resolveRoute(relativePath, isInit, context) {
 	else if (clientContainers.has(targetService)) wrapperFolder = "client";
 	else if (environment) wrapperFolder = environment;
 
-	// Scripts with non-legacy RunContext run incorrectly in StarterPlayer container.
+	// Scripts with non-legacy RunContext run incorrectly in StarterPlayer container
 	const isStarterPlayerContainer = targetService === "StarterPlayerScripts" || targetService === "StarterCharacterScripts";
 	if (emitLegacyScripts === false && isStarterPlayerContainer) {
 		targetService = "ReplicatedStorage";
 	}
 
 	let nodeName = basename;
-	let projectPath = "";
+	let projectPath: string;;
 
 	if (isInit) {
 		const folderRelativePath = path.dirname(relativePath);
 		projectPath = toPosix(path.join(build, folderRelativePath));
-		if (virtualParts.length > 0) nodeName = virtualParts.pop();
+		if (virtualParts.length > 0) nodeName = virtualParts.pop()!;
 		else nodeName = lastRouteKeyword ? lastRouteKeyword : "source";
 	} else {
 		let compiledRelativePath = relativePath;
@@ -121,6 +127,7 @@ function resolveRoute(relativePath, isInit, context) {
 			compiledRelativePath = path.join(path.dirname(relativePath), compiledFilename);
 		}
 		projectPath = toPosix(path.join(build, compiledRelativePath));
+
 		if (mappedService) {
 			let shouldStrip = !keepRouteNames;
 
@@ -135,7 +142,7 @@ function resolveRoute(relativePath, isInit, context) {
 
 			if (shouldStrip) {
 				if (isPrefix) {
-					nodeName = basename.slice(matchedLength); 
+					nodeName = basename.slice(matchedLength);
 				} else {
 					nodeName = basename.slice(0, -matchedLength); 
 				}
@@ -145,5 +152,3 @@ function resolveRoute(relativePath, isInit, context) {
 
 	return { targetService, wrapperFolder, virtualParts, nodeName, projectPath };
 }
-
-module.exports = { resolveRoute };

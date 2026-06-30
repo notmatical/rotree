@@ -1,6 +1,7 @@
-const { parseArgs } = require("util");
+import { parseArgs } from "util";
+import { CliArgs } from "./types.js";
 
-function printHelp() {
+export function printHelp(): void {
 	console.log(`
 Rogen - A tool for feature-based folder structures with Rojo.
 
@@ -21,22 +22,20 @@ Options:
 	`);
 }
 
-function parseCliArgs(args = process.argv.slice(2)) {
+export function parseCliArgs(args: string[] = process.argv.slice(2)): CliArgs {
 	const options = {
-		help: { type: "boolean", short: "h" },
-		init: { type: "boolean", short: "i" },
-		config: { type: "string", short: "c" },
-		mode: { type: "string", short: "m" },
-		source: { type: "string", short: "s", multiple: true },
-		template: { type: "string", short: "t" },
-		output: { type: "string", short: "o" },
-		build: { type: "string", short: "b" },
-		watch: { type: "boolean", short: "w" },
-		keepRouteNames: { type: "boolean", short: "k" }
+		help: { type: "boolean" as const, short: "h" },
+		init: { type: "boolean" as const, short: "i" },
+		config: { type: "string" as const, short: "c" },
+		mode: { type: "string" as const, short: "m" },
+		source: { type: "string" as const, short: "s", multiple: true },
+		template: { type: "string" as const, short: "t" },
+		output: { type: "string" as const, short: "o" },
+		build: { type: "string" as const, short: "b" },
+		watch: { type: "boolean" as const, short: "w" },
+		keepRouteNames: { type: "boolean" as const, short: "k" }
 	};
 
 	const { values } = parseArgs({ args, options, strict: false });
-	return values;
+	return values as CliArgs;
 }
-
-module.exports = { printHelp, parseCliArgs };

@@ -1,8 +1,9 @@
-const fs = require("fs");
-const path = require("path");
-const { defaultConfig } = require("./constants");
+import fs from "fs";
+import path from "path";
+import { defaultConfig } from "./constants.js";
+import { Environment, RogenConfig, RogenMode, RojoTree } from "./types.js";
 
-function resolveConfigPath(customPathArg) {
+export function resolveConfigPath(customPathArg?: string): string | null {
 	const cwd = process.cwd();
 	
 	if (customPathArg) {
@@ -14,23 +15,33 @@ function resolveConfigPath(customPathArg) {
 	}
 
 	const defaultPath = path.resolve(cwd, ".rogen.json");
-	if (fs.existsSync(defaultPath)) return defaultPath;
+	if (fs.existsSync(defaultPath)) {
+		return defaultPath;
+	}
 
 	try {
 		const directoryFiles = fs.readdirSync(cwd);
 		const matchedConfig = directoryFiles.find(file => file.endsWith(".rogen.json"));
-		if (matchedConfig) return path.resolve(cwd, matchedConfig);
-	} catch (error) {}
+		if (matchedConfig) {
+			return path.resolve(cwd, matchedConfig);
+		}
+	} catch (error) {
+		if (error instanceof Error) {
+			console.error(`\nFailed to scan directory for config file: ${error.message}\n`);
+		} else {
+			console.error(`\nFailed to scan directory for config files: Unknown Error\n`);
+		}
+	}
 
 	return null;
 }
 
-function loadAndValidateConfig(configPath) {
+export function loadAndValidateConfig(configPath: string | null): { config: RogenConfig; hasConfig: boolean } {
 	if (!configPath) {
 		return { config: JSON.parse(JSON.stringify(defaultConfig)), hasConfig: false };
 	}
 
-	const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+	const config = JSON.parse(fs.readFileSync(configPath, "utf-8")) as RogenConfig;
 	const standardKeys = ["source", "template", "luau", "ts", "darklua", "aliases", "keepRouteNames"];
 
 	for (const key in config) {
@@ -57,11 +68,14 @@ function loadAndValidateConfig(configPath) {
 	return { config, hasConfig: true };
 }
 
-function loadProjectTree(cliProjectArg, configProjectField) {
-	let targetPath = null;
+export function loadProjectTree(cliProjectArg?: string, configProjectField?: string | object): RojoTree {
+	let targetPath: string | null = null;
 	
-	if (cliProjectArg) targetPath = path.resolve(process.cwd(), cliProjectArg);
-	else if (typeof configProjectField === "string") targetPath = path.resolve(process.cwd(), configProjectField);
+	if (cliProjectArg) {
+		targetPath = path.resolve(process.cwd(), cliProjectArg);
+	} else if (typeof configProjectField === "string") {
+		targetPath = path.resolve(process.cwd(), configProjectField);
+	}
 
 	if (targetPath) {
 		if (!fs.existsSync(targetPath)) {
@@ -71,35 +85,35 @@ function loadProjectTree(cliProjectArg, configProjectField) {
 	}
 
 	if (typeof configProjectField === "object" && configProjectField !== null) {
-		return configProjectField;
+		return configProjectField as RojoTree;
 	}
 	
 	return JSON.parse(JSON.stringify(defaultConfig.template));
 }
 
-function getEnvironment() {
+export function getEnvironment(): Environment {
 	const cwd = process.cwd();
 	const isTsProject = fs.existsSync(path.join(cwd, "tsconfig.json"));
 	const isDarkluaProject = fs.existsSync(path.join(cwd, ".darklua.json")) || fs.existsSync(path.join(cwd, ".darklua.json5"));
 	return { isTsProject, isDarkluaProject };
 }
 
-function resolveActiveModes(config, hasConfig, cliMode, env) {
-	const baseLanguage = env.isTsProject ? (config.ts || defaultConfig.ts) : (config.luau || defaultConfig.luau);
+export function resolveActiveModes(config: RogenConfig, hasConfig: boolean, cliMode: string | undefined, env: Environment): RogenMode[] {
+	const baseLanguage = env.isTsProject ? (config.ts || defaultConfig.ts!) : (config.luau || defaultConfig.luau!);
 	const nonModeKeys = new Set(["source", "template", "aliases", "keepRouteNames"]);
-	const activeModes = [];
+	const activeModes: RogenMode[] = [];
 
 	if (hasConfig) {
 		if (cliMode) {
 			if (!config[cliMode]) throw new Error(`Mode "${cliMode}" is not defined in your config file.`);
-			activeModes.push(config[cliMode]);
+			activeModes.push(config[cliMode] as RogenMode);
 		} else {
 			for (const key in config) {
 				if (!nonModeKeys.has(key) && typeof config[key] === "object" && !Array.isArray(config[key])) {
 					if (key === "luau" && env.isTsProject) continue;
 					if (key === "ts" && !env.isTsProject) continue;
 					if (key === "darklua" && !env.isDarkluaProject) continue;
-					activeModes.push(config[key]);
+					activeModes.push(config[key] as RogenMode);
 				}
 			}
 			if (activeModes.length === 0) {
@@ -108,21 +122,18 @@ function resolveActiveModes(config, hasConfig, cliMode, env) {
 		}
 	} else {
 		if (cliMode) {
-			if (!defaultConfig[cliMode]) throw new Error(`Mode "${cliMode}" is not defined in the fallback config.`);
-			activeModes.push({ ...baseLanguage, ...config[cliMode] });
+			const fallbackMode = (defaultConfig as Record<string, RogenMode>)[cliMode];
+			if (!fallbackMode) {
+				throw new Error(`Mode "${cliMode}" is not defined in the fallback config.`);
+			}
+			activeModes.push({ ...baseLanguage, ...fallbackMode });
 		} else {
 			activeModes.push(baseLanguage);
-			if (env.isDarkluaProject) activeModes.push({ ...baseLanguage, ...config.darklua });
+			if (env.isDarkluaProject) {
+				activeModes.push({ ...baseLanguage, ...(config.darklua || defaultConfig.darklua) });
+			}
 		}
 	}
 
 	return activeModes;
 }
-
-module.exports = {
-	resolveConfigPath,
-	loadAndValidateConfig,
-	loadProjectTree,
-	getEnvironment,
-	resolveActiveModes
-};
