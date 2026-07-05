@@ -1,0 +1,39 @@
+# Normalize line endings: auto-detect text, store and check out as LF everywhere.
+# Keeps Biome's LF formatting stable across Windows/macOS/Linux contributors.
+* text=auto eol=lf
+
+# Source & config — always text
+*.ts    text
+*.tsx   text
+*.js    text
+*.mjs   text
+*.cjs   text
+*.json  text
+*.jsonc text
+*.md    text
+*.toml  text
+*.yml   text
+*.yaml  text
+
+# Luau / Lua sources — text
+*.luau  text
+*.lua   text
+
+# Roblox formats: XML variants are text, binary variants are not
+*.rbxmx text
+*.rbxlx text
+*.rbxm  binary
+*.rbxl  binary
+
+# Images & other binaries
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
+
+# Generated lockfiles — treat as text, collapse diffs on GitHub
+bun.lock          text linguist-generated=true
+package-lock.json text linguist-generated=true

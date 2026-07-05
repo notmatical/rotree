@@ -1,18 +1,18 @@
-import { parseArgs } from "util";
-import { CliArgs } from "./types.js";
+import { parseArgs } from "node:util";
+import type { CliArgs } from "./types.js";
 
 export function printHelp(): void {
 	console.log(`
-Rogen - A tool for feature-based folder structures with Rojo.
+Rotree - A tool for feature-based folder structures with Rojo.
 
 Usage:
-  rogen [options]
+  rotree [options]
 
 Options:
   -h, --help            Show this help menu
-  -i, --init            Generate a default .rogen.json config file
+  -i, --init            Generate a default .rotree.json config file
   -w, --watch           Watch the source directory for changes and regenerate automatically
-  -c, --config <path>   Specify a custom Rogen config file path
+  -c, --config <path>   Specify a custom Rotree config file path
   -m, --mode <mode>     Specify the mode to run (luau, ts, or darklua)
   -s, --source <path>   Override the directory containing your uncompiled code
   -t, --template <path> Specify a path to a JSON file containing your base Rojo tree
@@ -33,7 +33,7 @@ export function parseCliArgs(args: string[] = process.argv.slice(2)): CliArgs {
 		output: { type: "string" as const, short: "o" },
 		build: { type: "string" as const, short: "b" },
 		watch: { type: "boolean" as const, short: "w" },
-		keepRouteNames: { type: "boolean" as const, short: "k" }
+		keepRouteNames: { type: "boolean" as const, short: "k" },
 	};
 
 	const { values } = parseArgs({ args, options, strict: false });

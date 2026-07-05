@@ -1,11 +1,11 @@
-import fs from "fs";
-import { getOrCreateNode, sortObject, pruneObject } from "../src/core/tree.js";
-import { RojoNode } from "../src/types.js";
-import { jest } from "@jest/globals";
+import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
+import fs from "node:fs";
+import { getOrCreateNode, pruneObject, sortObject } from "../src/core/tree.js";
+import type { RojoNode } from "../src/types.js";
 
 describe("Tree Utilities", () => {
 	afterEach(() => {
-		jest.restoreAllMocks();
+		mock.restore();
 	});
 
 	describe("getOrCreateNode", () => {
@@ -27,11 +27,11 @@ describe("Tree Utilities", () => {
 		it("should recursively sort object keys alphabetically", () => {
 			const unsorted = {
 				Zebra: { B: 1, A: 2 },
-				Apple: { D: 4, C: 3 }
+				Apple: { D: 4, C: 3 },
 			};
-			
+
 			const sorted = sortObject(unsorted);
-			
+
 			expect(Object.keys(sorted)).toEqual(["Apple", "Zebra"]);
 			expect(Object.keys(sorted.Apple)).toEqual(["C", "D"]);
 			expect(Object.keys(sorted.Zebra)).toEqual(["A", "B"]);
@@ -44,18 +44,18 @@ describe("Tree Utilities", () => {
 			const tree: RojoNode = {
 				ValidInBuild: { $path: "out/valid" },
 				ValidExternal: { $path: "node_modules/@rbxts" },
-				InvalidExternal: { $path: "missing_folder/file" }
+				InvalidExternal: { $path: "missing_folder/file" },
 			};
 
-			jest.spyOn(fs, "existsSync").mockImplementation((pathStr) => 
-				String(pathStr).includes("@rbxts")
+			spyOn(fs, "existsSync").mockImplementation((pathStr) =>
+				String(pathStr).includes("@rbxts"),
 			);
 
 			const pruned = pruneObject(tree, buildDir);
 
-			expect(pruned.ValidInBuild).toBeDefined(); 
-			expect(pruned.ValidExternal).toBeDefined(); 
-			expect(pruned.InvalidExternal).toBeUndefined(); 
+			expect(pruned.ValidInBuild).toBeDefined();
+			expect(pruned.ValidExternal).toBeDefined();
+			expect(pruned.InvalidExternal).toBeUndefined();
 		});
 	});
 });

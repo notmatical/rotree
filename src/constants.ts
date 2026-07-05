@@ -1,50 +1,58 @@
-import { RogenConfig, RoutingMaps } from "./types.js";
+import type { RotreeConfig, RoutingMaps } from "./types.js";
 
-export const defaultConfig: RogenConfig = {
+// Config keys that are settings, not build modes. Any other object key is treated as a mode.
+export const RESERVED_CONFIG_KEYS = [
+	"source",
+	"template",
+	"aliases",
+	"keepRouteNames",
+] as const;
+
+// Built-in build modes shipped with Rotree.
+export const BUILTIN_MODES = ["luau", "ts", "darklua"] as const;
+
+export const defaultConfig: RotreeConfig = {
 	source: ["src"],
 	keepRouteNames: false,
 	aliases: {},
-	luau: { 
-		output: "default.project.json", 
-		build: "src"
+	luau: {
+		output: "default.project.json",
+		build: "src",
 	},
-	ts: { 
-		output: "default.project.json", 
-		build: "out"
+	ts: {
+		output: "default.project.json",
+		build: "out",
 	},
-	darklua: { 
-		output: "build.project.json", 
-		build: "dist" 
+	darklua: {
+		output: "build.project.json",
+		build: "dist",
 	},
 	template: {
 		name: "roblox-project",
-		globIgnorePaths: [
-			"**/package.json",
-			"**/tsconfig.json"
-		],
+		globIgnorePaths: ["**/package.json", "**/tsconfig.json"],
 		tree: {
 			$className: "DataModel",
 			ServerScriptService: {
 				ServerPackages: {
-					$path: "ServerPackages"
-				}
+					$path: "ServerPackages",
+				},
 			},
 			ReplicatedStorage: {
 				rbxts_include: {
 					$path: "include",
-					node_modules: { 
-						$className: "Folder", 
-						"@rbxts": { 
-							$path: "node_modules/@rbxts" 
-						}
-					}
+					node_modules: {
+						$className: "Folder",
+						"@rbxts": {
+							$path: "node_modules/@rbxts",
+						},
+					},
 				},
 				Packages: {
-					$path: "Packages"
-				}
-			}
-		}
-	}
+					$path: "Packages",
+				},
+			},
+		},
+	},
 };
 
 export const services: Record<string, string> = {
@@ -67,43 +75,48 @@ export const serviceParents: Record<string, string> = {
 };
 
 export const serverContainers = new Set<string>([
-	"ServerScriptService", 
-	"ServerStorage"
+	"ServerScriptService",
+	"ServerStorage",
 ]);
 
 export const clientContainers = new Set<string>([
-	"StarterPlayer", 
-	"StarterPlayerScripts", 
-	"StarterCharacterScripts", 
-	"StarterGui", 
-	"StarterPack", 
-	"ReplicatedFirst"
+	"StarterPlayer",
+	"StarterPlayerScripts",
+	"StarterCharacterScripts",
+	"StarterGui",
+	"StarterPack",
+	"ReplicatedFirst",
 ]);
 
-export const serviceAliases = new Set<string>([
-	"server", 
-	"client", 
-	"shared"
-]);
+export const serviceAliases = new Set<string>(["server", "client", "shared"]);
 
-export function generateRoutingMaps(customAliases: Record<string, string> = {}): RoutingMaps {
+export function generateRoutingMaps(
+	customAliases: Record<string, string> = {},
+): RoutingMaps {
 	const mergedServices = { ...services, ...customAliases };
 	const lowerCaseMap = Object.fromEntries(
-		Object.entries(mergedServices).map(([k, v]) => [k.toLowerCase(), v])
+		Object.entries(mergedServices).map(([k, v]) => [k.toLowerCase(), v]),
 	);
 
-	const mergedKeys = Object.keys(mergedServices).sort((a, b) => b.length - a.length);
-	const lowerKeys = Object.keys(lowerCaseMap).sort((a, b) => b.length - a.length);
+	const mergedKeys = Object.keys(mergedServices).sort(
+		(a, b) => b.length - a.length,
+	);
+	const lowerKeys = Object.keys(lowerCaseMap).sort(
+		(a, b) => b.length - a.length,
+	);
 
-	const separatorSuffixRegex = new RegExp(`[\\.\\-_](${lowerKeys.join("|")})$`, "i");
+	const separatorSuffixRegex = new RegExp(
+		`[\\.\\-_](${lowerKeys.join("|")})$`,
+		"i",
+	);
 	const pascalCaseSuffixRegex = new RegExp(`(${mergedKeys.join("|")})$`);
 	const prefixRegex = new RegExp(`^(${lowerKeys.join("|")})([\\.\\-_]?)`, "i");
 
-	return { 
-		mergedServices, 
-		lowerCaseMap, 
-		separatorSuffixRegex, 
-		pascalCaseSuffixRegex, 
-		prefixRegex 
+	return {
+		mergedServices,
+		lowerCaseMap,
+		separatorSuffixRegex,
+		pascalCaseSuffixRegex,
+		prefixRegex,
 	};
 }

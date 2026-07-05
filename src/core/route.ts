@@ -1,23 +1,41 @@
-import path from "path";
-import { 
-	serviceAliases, 
-	serverContainers, 
-	clientContainers
+import path from "node:path";
+import {
+	clientContainers,
+	serverContainers,
+	serviceAliases,
 } from "../constants.js";
+import type { RouteContext } from "../types.js";
 import { toPosix } from "./tree.js";
-import { RouteContext } from "../types.js";
 
 export interface RouteResolution {
 	targetService: string;
 	wrapperFolder: string;
+	useWrapper: boolean;
 	virtualParts: string[];
 	nodeName: string;
 	projectPath: string;
 }
 
-export function resolveRoute(relativePath: string, isInit: boolean, context: RouteContext): RouteResolution {
-	const { emitLegacyScripts, isTsProject, build, routingMaps, keepRouteNames, directoryMarkers } = context;
-	const { mergedServices, lowerCaseMap, separatorSuffixRegex, pascalCaseSuffixRegex, prefixRegex } = routingMaps;
+export function resolveRoute(
+	relativePath: string,
+	isInit: boolean,
+	context: RouteContext,
+): RouteResolution {
+	const {
+		emitLegacyScripts,
+		isTsProject,
+		build,
+		routingMaps,
+		keepRouteNames,
+		directoryMarkers,
+	} = context;
+	const {
+		mergedServices,
+		lowerCaseMap,
+		separatorSuffixRegex,
+		pascalCaseSuffixRegex,
+		prefixRegex,
+	} = routingMaps;
 
 	const parts = relativePath.split(/[\\/]/);
 	const filename = parts.pop()!;
@@ -29,7 +47,7 @@ export function resolveRoute(relativePath: string, isInit: boolean, context: Rou
 	let environment: string | null = null;
 
 	// Marker routing
-	if (directoryMarkers && directoryMarkers[""]) {
+	if (directoryMarkers?.[""]) {
 		const rootMarker = directoryMarkers[""];
 		targetService = lowerCaseMap[rootMarker];
 		lastRouteKeyword = rootMarker;
@@ -49,7 +67,7 @@ export function resolveRoute(relativePath: string, isInit: boolean, context: Rou
 			targetService = lowerCaseMap[marker];
 			lastRouteKeyword = marker;
 			if (serviceAliases.has(marker)) environment = marker;
-			
+
 			// Strip if the folder name is also a routing keyword
 			if (!matchedService) {
 				virtualParts.push(part);
@@ -107,13 +125,24 @@ export function resolveRoute(relativePath: string, isInit: boolean, context: Rou
 	else if (environment) wrapperFolder = environment;
 
 	// Scripts with non-legacy RunContext run incorrectly in StarterPlayer container
-	const isStarterPlayerContainer = targetService === "StarterPlayerScripts" || targetService === "StarterCharacterScripts";
+	const isStarterPlayerContainer =
+		targetService === "StarterPlayerScripts" ||
+		targetService === "StarterCharacterScripts";
 	if (emitLegacyScripts === false && isStarterPlayerContainer) {
 		targetService = "ReplicatedStorage";
 	}
 
+	// Single-environment services (all server- or all client-side) don't need the
+	// redundant server/client wrapper folder. Only shared services like ReplicatedStorage,
+	// which mix shared and redirected client code, keep the wrapper to avoid collisions.
+	// Computed after the redirect above so a client script moved into ReplicatedStorage
+	// still gets its "client" wrapper.
+	const useWrapper = !(
+		serverContainers.has(targetService) || clientContainers.has(targetService)
+	);
+
 	let nodeName = basename;
-	let projectPath: string;;
+	let projectPath: string;
 
 	if (isInit) {
 		const folderRelativePath = path.dirname(relativePath);
@@ -124,7 +153,10 @@ export function resolveRoute(relativePath: string, isInit: boolean, context: Rou
 		let compiledRelativePath = relativePath;
 		if (isTsProject) {
 			const compiledFilename = filename.replace(/\.tsx?$/i, ".luau");
-			compiledRelativePath = path.join(path.dirname(relativePath), compiledFilename);
+			compiledRelativePath = path.join(
+				path.dirname(relativePath),
+				compiledFilename,
+			);
 		}
 		projectPath = toPosix(path.join(build, compiledRelativePath));
 
@@ -144,11 +176,18 @@ export function resolveRoute(relativePath: string, isInit: boolean, context: Rou
 				if (isPrefix) {
 					nodeName = basename.slice(matchedLength);
 				} else {
-					nodeName = basename.slice(0, -matchedLength); 
+					nodeName = basename.slice(0, -matchedLength);
 				}
 			}
-		} 
+		}
 	}
 
-	return { targetService, wrapperFolder, virtualParts, nodeName, projectPath };
+	return {
+		targetService,
+		wrapperFolder,
+		useWrapper,
+		virtualParts,
+		nodeName,
+		projectPath,
+	};
 }

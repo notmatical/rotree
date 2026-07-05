@@ -11,18 +11,18 @@ export interface CliArgs {
 	keepRouteNames?: boolean;
 }
 
-export interface RogenMode {
+export interface RotreeMode {
 	output: string;
 	build: string;
 }
 
-export interface RogenConfig {
+export interface RotreeConfig {
 	source?: string | string[];
 	keepRouteNames?: boolean;
 	aliases?: Record<string, string>;
-	luau?: RogenMode;
-	ts?: RogenMode;
-	darklua?: RogenMode;
+	luau?: RotreeMode;
+	ts?: RotreeMode;
+	darklua?: RotreeMode;
 	template?: unknown;
 	[key: string]: unknown;
 }
@@ -40,7 +40,7 @@ export interface RoutingMaps {
 	prefixRegex: RegExp;
 }
 
-export interface RouteContext extends RogenMode {
+export interface RouteContext extends RotreeMode {
 	source: string | string[];
 	isTsProject: boolean;
 	emitLegacyScripts: boolean;
