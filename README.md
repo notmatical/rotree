@@ -57,19 +57,19 @@ Rotree supports passing an array of directories to the source config (or passing
 Integrate Rotree into your workflow to ensure that your `default.project.json` stays synchronized with your file system.
 
 ### 1. Installation
-Rotree is published to npm as [`@matical/rotree`](https://www.npmjs.com/package/@matical/rotree) and runs anywhere `npx`/`bunx` does.
+Rotree ships on two channels — use whichever fits your project. The CLI command is `rotree` either way.
 
-Run it directly without installing:
-```bash
-bunx @matical/rotree --watch   # or: npx @matical/rotree --watch
+**Rokit (`rokit.toml`)** — recommended for Luau projects:
+```toml
+[tools]
+rotree = "notmatical/rotree@0.1.0"
 ```
 
-Or add it as a dev dependency (recommended for roblox-ts projects):
+**npm** — recommended for roblox-ts projects (or anyone with Node/Bun). Add it as a dev dependency, or run it directly:
 ```bash
 bun add -d @matical/rotree     # or: npm install -D @matical/rotree
+bunx @matical/rotree --watch   # or: npx @matical/rotree --watch
 ```
-
-The CLI command is `rotree` regardless of the scoped package name.
 
 ### 2. Configuration (.rotree.json)
 Create a `.rotree.json` file using `rotree --init`.
