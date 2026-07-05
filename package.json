@@ -5,7 +5,6 @@
 	"keywords": [
 		"roblox",
 		"rojo",
-		"rokit",
 		"luau",
 		"roblox-ts",
 		"feature-based",
@@ -31,9 +30,9 @@
 		"check": "biome check .",
 		"check:fix": "biome check --write .",
 		"changeset": "changeset",
-		"changeset:version": "changeset version",
-		"bundle": "esbuild bin/rotree.ts --bundle --platform=node --format=cjs --external:*.node --outfile=dist/bundle.cjs",
-		"release:local": "npm run bundle && npx pkg dist/bundle.cjs --targets node18-win-x64,node18-linux-x64,node18-macos-x64 --out-path releases/"
+		"version": "changeset version",
+		"release": "changeset publish",
+		"publish:dry": "npm pack --dry-run"
 	},
 	"main": "dist/src/index.js",
 	"bin": {
@@ -57,7 +56,6 @@
 		"@changesets/cli": "^2.31.0",
 		"@types/bun": "^1.3.8",
 		"@types/node": "^26.0.1",
-		"esbuild": "^0.28.1",
 		"typescript": "^6.0.3"
 	},
 	"dependencies": {
