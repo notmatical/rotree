@@ -12,6 +12,7 @@ describe("Router Logic", () => {
 		emitLegacyScripts: true,
 		isTsProject: false,
 		keepRouteNames: false,
+		jsx: "client",
 		routingMaps: generateRoutingMaps(),
 	};
 
@@ -80,7 +81,8 @@ describe("Router Logic", () => {
 			customContext,
 		);
 		expect(result1.targetService).toBe("StarterPlayerScripts");
-		expect(result1.nodeName).toBe("Player");
+		// Role/custom aliases are descriptive and kept (not stripped).
+		expect(result1.nodeName).toBe("PlayerController");
 		expect(result1.wrapperFolder).toBe("client");
 
 		const result2 = resolveRoute(
@@ -141,10 +143,10 @@ describe("Router Logic", () => {
 	});
 
 	it("should route correctly based on pascalcase/no-separator prefix", () => {
-		const result = resolveRoute("ui/ClientController.ts", false, baseContext);
+		const result = resolveRoute("ui/ClientHud.ts", false, baseContext);
 
 		expect(result.targetService).toBe("StarterPlayerScripts");
-		expect(result.nodeName).toBe("Controller");
+		expect(result.nodeName).toBe("Hud");
 		expect(result.wrapperFolder).toBe("client");
 	});
 
@@ -169,6 +171,7 @@ describe("Marker File Routing", () => {
 		emitLegacyScripts: true,
 		isTsProject: false,
 		keepRouteNames: false,
+		jsx: "client",
 		routingMaps: generateRoutingMaps(),
 		directoryMarkers: {},
 	};
@@ -226,6 +229,7 @@ describe("Routing (Last Is King)", () => {
 		emitLegacyScripts: true,
 		isTsProject: false,
 		keepRouteNames: false,
+		jsx: "client",
 		routingMaps: generateRoutingMaps(),
 		directoryMarkers: {},
 	};
@@ -317,5 +321,122 @@ describe("Routing (Last Is King)", () => {
 		expect(result.wrapperFolder).toBe("shared");
 		expect(result.virtualParts).toEqual(["inventory"]);
 		expect(result.nodeName).toBe("test");
+	});
+});
+
+describe("Wrapper Flattening", () => {
+	const baseContext: RouteContext = {
+		source: "src",
+		build: "src",
+		output: "test.project.json",
+		name: "test-game",
+		emitLegacyScripts: true,
+		isTsProject: false,
+		keepRouteNames: false,
+		jsx: "client",
+		routingMaps: generateRoutingMaps(),
+		directoryMarkers: {},
+	};
+
+	it("shared/default code drops to the ReplicatedStorage root (no wrapper)", () => {
+		const result = resolveRoute("utils/math.lua", false, baseContext);
+
+		expect(result.targetService).toBe("ReplicatedStorage");
+		expect(result.wrapperFolder).toBe("shared");
+		expect(result.useWrapper).toBe(false);
+	});
+
+	it("server code drops to the ServerScriptService root (no wrapper)", () => {
+		const result = resolveRoute(
+			"systems/combat.server.lua",
+			false,
+			baseContext,
+		);
+
+		expect(result.targetService).toBe("ServerScriptService");
+		expect(result.useWrapper).toBe(false);
+	});
+
+	it("client code redirected into ReplicatedStorage keeps its wrapper", () => {
+		const context: RouteContext = { ...baseContext, emitLegacyScripts: false };
+		const result = resolveRoute("ui/hud.client.lua", false, context);
+
+		// emitLegacyScripts:false moves client scripts into ReplicatedStorage, where the
+		// "client" wrapper prevents collisions with shared modules.
+		expect(result.targetService).toBe("ReplicatedStorage");
+		expect(result.wrapperFolder).toBe("client");
+		expect(result.useWrapper).toBe(true);
+	});
+});
+
+describe("Role Convention", () => {
+	const baseContext: RouteContext = {
+		source: "src",
+		build: "out",
+		output: "test.project.json",
+		name: "test-game",
+		emitLegacyScripts: true,
+		isTsProject: true,
+		keepRouteNames: false,
+		jsx: "client",
+		routingMaps: generateRoutingMaps(),
+		directoryMarkers: {},
+	};
+
+	it("routes .service to the server, keeping the descriptive name", () => {
+		const result = resolveRoute(
+			"modules/player/player.service.ts",
+			false,
+			baseContext,
+		);
+		expect(result.targetService).toBe("ServerScriptService");
+		expect(result.nodeName).toBe("player.service");
+	});
+
+	it("routes .controller to the client, keeping the name", () => {
+		const result = resolveRoute(
+			"modules/input/input.controller.ts",
+			false,
+			baseContext,
+		);
+		expect(result.targetService).toBe("StarterPlayerScripts");
+		expect(result.nodeName).toBe("input.controller");
+	});
+
+	it("routes .component to the client", () => {
+		const result = resolveRoute("ui/button.component.tsx", false, baseContext);
+		expect(result.targetService).toBe("StarterPlayerScripts");
+		expect(result.nodeName).toBe("button.component");
+	});
+
+	it("defaults an unrouted .tsx file to the client (jsx)", () => {
+		const result = resolveRoute("ui/app.tsx", false, baseContext);
+		expect(result.targetService).toBe("StarterPlayerScripts");
+		expect(result.nodeName).toBe("app");
+	});
+
+	it("lets an explicit signal override the jsx default", () => {
+		const result = resolveRoute("shared/widget.tsx", false, baseContext);
+		expect(result.targetService).toBe("ReplicatedStorage");
+	});
+
+	it("keeps role suffixes but strips the .server entry suffix", () => {
+		const role = resolveRoute("modules/x/thing.service.ts", false, baseContext);
+		expect(role.nodeName).toBe("thing.service");
+
+		const entry = resolveRoute("main.server.ts", false, baseContext);
+		expect(entry.nodeName).toBe("main");
+	});
+
+	it("sends realm-neutral roles to shared by default", () => {
+		const result = resolveRoute("modules/x/game.const.ts", false, baseContext);
+		expect(result.targetService).toBe("ReplicatedStorage");
+		expect(result.nodeName).toBe("game.const");
+	});
+
+	it("honors jsx set to shared", () => {
+		const context: RouteContext = { ...baseContext, jsx: "shared" };
+		const result = resolveRoute("ui/app.tsx", false, context);
+		expect(result.targetService).toBe("ReplicatedStorage");
 	});
 });
