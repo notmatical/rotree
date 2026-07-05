@@ -25,12 +25,12 @@ Here are the routing strategies, listed from lowest to highest priority:
 ### 1. Folder Name
 If a folder is named after a routing keyword (`server`, `client`, `shared`) or a Roblox service (e.g., `ReplicatedFirst`), all files within it inherit that destination.
 * **Behavior:** Rotree consumes the routing keyword and strips it from the final generated path.
-* **Example:** `src/combat/client/combatController.luau` becomes `StarterPlayerScripts/client/combat/combatController.luau`.
+* **Example:** `src/combat/client/combatController.luau` becomes `StarterPlayerScripts/combat/combatController.luau`.
 
 ### 2. Marker File
 To route a folder, you can also place an empty marker file (e.g., `.server`, `.client`, `.shared`) directly inside the directory.
 * **Behavior:** The entire folder is routed to that service, but the folder's name is preserved in the Roblox tree.
-* **Example:** A folder named `AntiCheat` containing a `.server` marker file will be routed to `ServerScriptService/server/AntiCheat`.
+* **Example:** A folder named `AntiCheat` containing a `.server` marker file will be routed to `ServerScriptService/AntiCheat`.
 
 ### 3. File Name
 To route a specific file differently than its parent folder, use a routing prefix or suffix. File affixes are absolute and will always override folder names and marker files.
