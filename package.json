@@ -1,5 +1,5 @@
 {
-	"name": "rotree",
+	"name": "@matical/rotree",
 	"version": "0.1.0",
 	"description": "A tool for feature-based folder structures with Rojo.",
 	"keywords": [
