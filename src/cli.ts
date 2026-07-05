@@ -19,6 +19,7 @@ Options:
   -b, --build <path>    Override the directory where your compiled/transpiled code lands
   -o, --output <path>   Override the name and destination of the final generated Rojo project file
   -k, --keepRouteNames  Do not strip routing prefixes or suffixes (e.g., server, client) from names
+  -j, --jsx <realm>     Realm that unrouted .tsx/.jsx files default to (default: client)
 	`);
 }
 
@@ -34,6 +35,7 @@ export function parseCliArgs(args: string[] = process.argv.slice(2)): CliArgs {
 		build: { type: "string" as const, short: "b" },
 		watch: { type: "boolean" as const, short: "w" },
 		keepRouteNames: { type: "boolean" as const, short: "k" },
+		jsx: { type: "string" as const, short: "j" },
 	};
 
 	const { values } = parseArgs({ args, options, strict: false });

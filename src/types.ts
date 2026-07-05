@@ -9,6 +9,7 @@ export interface CliArgs {
 	build?: string;
 	watch?: boolean;
 	keepRouteNames?: boolean;
+	jsx?: string;
 }
 
 export interface RotreeMode {
@@ -19,6 +20,8 @@ export interface RotreeMode {
 export interface RotreeConfig {
 	source?: string | string[];
 	keepRouteNames?: boolean;
+	/** Realm that unrouted `.tsx`/`.jsx` files default to. Defaults to "client". */
+	jsx?: string;
 	aliases?: Record<string, string>;
 	luau?: RotreeMode;
 	ts?: RotreeMode;
@@ -47,6 +50,7 @@ export interface RouteContext extends RotreeMode {
 	name: string;
 	routingMaps: RoutingMaps;
 	keepRouteNames: boolean;
+	jsx: string;
 	directoryMarkers?: Record<string, string>;
 }
 

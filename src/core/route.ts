@@ -3,6 +3,7 @@ import {
 	clientContainers,
 	serverContainers,
 	serviceAliases,
+	strippedKeywords,
 } from "../constants.js";
 import type { RouteContext } from "../types.js";
 import { toPosix } from "./tree.js";
@@ -27,6 +28,7 @@ export function resolveRoute(
 		build,
 		routingMaps,
 		keepRouteNames,
+		jsx,
 		directoryMarkers,
 	} = context;
 	const {
@@ -45,12 +47,14 @@ export function resolveRoute(
 	let targetService = "ReplicatedStorage";
 	let lastRouteKeyword: string | null = null;
 	let environment: string | null = null;
+	let routed = false; // did any explicit signal (folder/marker/affix) fire?
 
 	// Marker routing
 	if (directoryMarkers?.[""]) {
 		const rootMarker = directoryMarkers[""];
 		targetService = lowerCaseMap[rootMarker];
 		lastRouteKeyword = rootMarker;
+		routed = true;
 		if (serviceAliases.has(rootMarker)) environment = rootMarker;
 	}
 
@@ -66,6 +70,7 @@ export function resolveRoute(
 		if (marker) {
 			targetService = lowerCaseMap[marker];
 			lastRouteKeyword = marker;
+			routed = true;
 			if (serviceAliases.has(marker)) environment = marker;
 
 			// Strip if the folder name is also a routing keyword
@@ -75,6 +80,7 @@ export function resolveRoute(
 		} else if (matchedService) {
 			targetService = matchedService;
 			lastRouteKeyword = lowerPart;
+			routed = true;
 			if (serviceAliases.has(lowerPart)) environment = lowerPart;
 		} else {
 			virtualParts.push(part);
@@ -82,6 +88,7 @@ export function resolveRoute(
 	}
 
 	let matchedLength = 0;
+	let matchedKeyword = "";
 	let mappedService: string | null = null;
 	let isPrefix = false;
 
@@ -92,6 +99,7 @@ export function resolveRoute(
 	// Affix routing
 	if (sepSuffixMatch) {
 		const suffix = sepSuffixMatch[1].toLowerCase();
+		matchedKeyword = suffix;
 		mappedService = lowerCaseMap[suffix];
 		matchedLength = sepSuffixMatch[0].length;
 		if (!isInit && serviceAliases.has(suffix)) {
@@ -99,6 +107,7 @@ export function resolveRoute(
 		}
 	} else if (pascalSuffixMatch) {
 		const suffix = pascalSuffixMatch[1].toLowerCase();
+		matchedKeyword = suffix;
 		mappedService = mergedServices[pascalSuffixMatch[1]];
 		matchedLength = pascalSuffixMatch[0].length;
 		if (!isInit && serviceAliases.has(suffix)) {
@@ -106,6 +115,7 @@ export function resolveRoute(
 		}
 	} else if (prefixMatch) {
 		const prefix = prefixMatch[1].toLowerCase();
+		matchedKeyword = prefix;
 		mappedService = lowerCaseMap[prefix];
 		matchedLength = prefixMatch[0].length;
 		if (!isInit && serviceAliases.has(prefix)) {
@@ -116,6 +126,16 @@ export function resolveRoute(
 
 	if (mappedService) {
 		targetService = mappedService;
+		routed = true;
+	}
+
+	// jsx default: an unrouted .tsx/.jsx file falls to the configured realm (client).
+	if (!routed && /\.(tsx|jsx)$/i.test(filename)) {
+		const jsxService = lowerCaseMap[jsx.toLowerCase()];
+		if (jsxService) {
+			targetService = jsxService;
+			routed = true;
+		}
 	}
 
 	// Resolve namespace wrapper folder
@@ -132,14 +152,16 @@ export function resolveRoute(
 		targetService = "ReplicatedStorage";
 	}
 
-	// Single-environment services (all server- or all client-side) don't need the
-	// redundant server/client wrapper folder. Only shared services like ReplicatedStorage,
-	// which mix shared and redirected client code, keep the wrapper to avoid collisions.
-	// Computed after the redirect above so a client script moved into ReplicatedStorage
-	// still gets its "client" wrapper.
-	const useWrapper = !(
-		serverContainers.has(targetService) || clientContainers.has(targetService)
-	);
+	// Shared/default code drops straight to the service root — no redundant wrapper.
+	// A wrapper is only kept when non-shared code is redirected into a shared service
+	// (e.g. emitLegacyScripts:false moves client scripts into ReplicatedStorage, where a
+	// "client" wrapper keeps them from colliding with shared modules). Dedicated
+	// single-environment services never wrap. Computed after the redirect above.
+	const useWrapper =
+		wrapperFolder !== "shared" &&
+		!(
+			serverContainers.has(targetService) || clientContainers.has(targetService)
+		);
 
 	let nodeName = basename;
 	let projectPath: string;
@@ -161,16 +183,14 @@ export function resolveRoute(
 		projectPath = toPosix(path.join(build, compiledRelativePath));
 
 		if (mappedService) {
-			let shouldStrip = !keepRouteNames;
-
-			// Rojo relies on '.server' and '.client' explicitly for script types.
-			// Even if keepRouteNames is true, we must strip these exact dot-prefixes.
-			if (keepRouteNames && sepSuffixMatch) {
-				const exactMatch = sepSuffixMatch[0].toLowerCase();
-				if (exactMatch === ".server" || exactMatch === ".client") {
-					shouldStrip = true;
-				}
-			}
+			// Rojo needs the exact '.server'/'.client' dot-suffixes stripped for script
+			// types. Other structural realm keywords are stripped too (unless
+			// keepRouteNames). Role aliases (service/controller/...) and custom aliases are
+			// descriptive, so they're kept — `player.service` stays `player.service`.
+			const exactDot = sepSuffixMatch ? sepSuffixMatch[0].toLowerCase() : "";
+			const forceStrip = exactDot === ".server" || exactDot === ".client";
+			const shouldStrip =
+				forceStrip || (strippedKeywords.has(matchedKeyword) && !keepRouteNames);
 
 			if (shouldStrip) {
 				if (isPrefix) {

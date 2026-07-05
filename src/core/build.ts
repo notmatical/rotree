@@ -95,6 +95,7 @@ export function build(
 		name: rojoTree.name ?? "unknown",
 		routingMaps: generateRoutingMaps(config.aliases || {}),
 		keepRouteNames: cliArgs.keepRouteNames ?? config.keepRouteNames ?? false,
+		jsx: cliArgs.jsx ?? config.jsx ?? "client",
 	};
 
 	let fileCount = 0;

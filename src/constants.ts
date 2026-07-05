@@ -67,7 +67,29 @@ export const services: Record<string, string> = {
 	StarterPack: "StarterPack",
 	StarterPlayerScripts: "StarterPlayerScripts",
 	StarterCharacterScripts: "StarterCharacterScripts",
+	// Role aliases — descriptive suffixes that imply a realm. These are KEPT in the
+	// node name (see strippedKeywords), so `player.service` stays `player.service`
+	// and roblox-ts imports resolve.
+	Service: "ServerScriptService",
+	Controller: "StarterPlayerScripts",
+	Component: "StarterPlayerScripts",
 };
+
+// Structural realm/service keywords are stripped from node names (e.g. `main.server`
+// -> `main`). Role aliases and any custom aliases are descriptive and are kept as-is.
+export const strippedKeywords = new Set<string>([
+	"server",
+	"client",
+	"shared",
+	"serverscriptservice",
+	"replicatedstorage",
+	"replicatedfirst",
+	"serverstorage",
+	"startergui",
+	"starterpack",
+	"starterplayerscripts",
+	"startercharacterscripts",
+]);
 
 export const serviceParents: Record<string, string> = {
 	StarterPlayerScripts: "StarterPlayer",
