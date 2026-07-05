@@ -1,197 +1,129 @@
 <div align="center">
 	<h1>Rotree</h1>
-	<p>A tool for feature-based folder structures with Rojo.</p>
-	<img src="example.png" alt="Visual mapping of VS Code to Roblox Explorer" width="100%">
+	<p><strong>Feature-based folder structure for Rojo — name files by <em>what they are</em>, not where they run.</strong></p>
+	<p>
+		<a href="https://www.npmjs.com/package/@matical/rotree"><img alt="npm" src="https://img.shields.io/npm/v/@matical/rotree?color=cb3837&logo=npm&logoColor=white"></a>
+		<a href="LICENSE.md"><img alt="license" src="https://img.shields.io/badge/license-MIT-blue"></a>
+	</p>
 </div>
 
-## What is Rotree?
-Rotree is a command line tool that brings **feature-based architecture** to Roblox development for both luau and roblox-ts. 
+Rotree watches your source and generates `default.project.json` for Rojo. You organize code by feature (`modules/player/`) and name files by role (`player.service.ts`); Rotree routes each file into the right Roblox service — with no `client`/`server`/`shared` folders to maintain. Works with both Luau and roblox-ts.
 
-Instead of separating your codebase in a `client`, `shared` and `server` folder at the root level, Rotree lets you group your code by domain and feature. You can keep your inventory UI, inventory server script, and inventory client script all inside a single `inventory` folder. This eliminates context-switching across different folders, making your codebase significantly easier to navigate, refactor, and scale.
+## Installation
 
-In the background, Rotree watches your file system and dynamically generates your `default.project.json` map for Rojo. You get the freedom to group your code in any way you want, and Rotree takes care of sorting everything into the correct Roblox services like `ReplicatedStorage` and `ServerScriptService`. 
+The CLI command is `rotree` on either channel.
 
-Moreover, Rotree allows you to merge multiple directories into a single Rojo project. This is useful for multi-place games where you want to share a core across different places.
-
-**Note:** *If you use luau, it is highly recommended to set up [darklua](https://github.com/seaofvoices/darklua) for improved string requires.*
-
-## Automatic Routing
-Rotree determines where a file belongs by looking at your folder structure, marker files, and file names. 
-
-When multiple rules apply to the same file, Rotree follows a simple principle: **the most specific instruction wins.** An explicit rule placed directly on a file will always override a general rule set by its parent folder.
-
-Here are the routing strategies, listed from lowest to highest priority:
-
-### 1. Folder Name
-If a folder is named after a routing keyword (`server`, `client`, `shared`) or a Roblox service (e.g., `ReplicatedFirst`), all files within it inherit that destination.
-* **Behavior:** Rotree consumes the routing keyword and strips it from the final generated path.
-* **Example:** `src/combat/client/combatController.luau` becomes `StarterPlayerScripts/combat/combatController.luau`.
-
-### 2. Marker File
-To route a folder, you can also place an empty marker file (e.g., `.server`, `.client`, `.shared`) directly inside the directory.
-* **Behavior:** The entire folder is routed to that service, but the folder's name is preserved in the Roblox tree.
-* **Example:** A folder named `AntiCheat` containing a `.server` marker file will be routed to `ServerScriptService/AntiCheat`.
-
-### 3. File Name
-To route a specific file differently than its parent folder, use a routing prefix or suffix. File affixes are absolute and will always override folder names and marker files.
-* **Delimited:** Use a separator (dot, hyphen, or underscore) before or after the base name.
-	* **Examples:** input-client.ts, server.data.ts, 
-* **CamelCase & PascalCase:** Prepend or append the mapped keyword directly to the filename.
-	* **Examples:** inputClient.ts, serverData.ts
-
-**Note:** *By default, Rotree strips the routing keyword from the final module name (e.g., `serverData.ts` and `data.server.ts` become `Data` and `data`, respectively). You can disable this behavior using the `--keepRouteNames` flag*.
-
-### 4. Default Fallback
-If no routing rules or keywords are found anywhere in the path, the file defaults to `ReplicatedStorage`.
-
-**Important Note for `init` Files:** *If a folder contains an initialization file (like `init.luau` or `index.ts`), Rotree routes the folder itself but will not apply any further routing to its nested contents. This ensures full compatibility with how Rojo handles folders containing initialization scripts.*
-
-## Merging of Multiple Sources
-Rotree supports passing an array of directories to the source config (or passing the -s CLI flag multiple times). 
-
-* **Clean Merging:** If, for example, `src/core` and `src/hub` both contain a shared folder, Rotree will merge the contents of both into a single `ReplicatedStorage/shared` folder. No duplicates are created.
-
-* **Overrides:** The order of your sources matters. If both directories contain a file with the exact same name and routing path, the directory listed last will overwrite the previous one.
-
-## Setup & Integration
-Integrate Rotree into your workflow to ensure that your `default.project.json` stays synchronized with your file system.
-
-### 1. Installation
-Rotree ships on two channels — use whichever fits your project. The CLI command is `rotree` either way.
-
-**Rokit (`rokit.toml`)** — recommended for Luau projects:
+**Rokit** — recommended for Luau projects:
 ```toml
 [tools]
-rotree = "notmatical/rotree@0.1.0"
+rotree = "notmatical/rotree@0.2.0"
 ```
 
-**npm** — recommended for roblox-ts projects (or anyone with Node/Bun). Add it as a dev dependency, or run it directly:
+**npm** — recommended for roblox-ts (or anyone with Node/Bun). Add it as a dev dependency, or run it directly:
 ```bash
 bun add -d @matical/rotree     # or: npm install -D @matical/rotree
 bunx @matical/rotree --watch   # or: npx @matical/rotree --watch
 ```
 
-### 2. Configuration (.rotree.json)
-Create a `.rotree.json` file using `rotree --init`.
+## Quick start
 
-Here is a default configuration structure that works for both roblox-ts and luau, including darklua support. You may want to define a custom tree in "template" for things like adding pesde packages, mapping node_modules, or customizing specific services. If you want to map specific suffixes or folder to a particular service, use the aliases field.
+```bash
+rotree --init      # writes a .rotree.json
+rotree --watch     # regenerate default.project.json on every change
+```
+
+For **roblox-ts**, run Rotree next to the compiler (via [concurrently](https://www.npmjs.com/package/concurrently)):
+```json
+"scripts": {
+	"dev": "concurrently \"rotree -w\" \"rbxtsc -w\" \"rojo serve\""
+}
+```
+
+## The convention: name by role, realm follows
+
+You never create `client`/`server`/`shared` folders. Instead you **name a file for what it is**, and its realm falls out automatically:
+
+| You write | Because it's a… | Lands in |
+| --- | --- | --- |
+| `player.service.ts` | service | **server** (`ServerScriptService`) |
+| `input.controller.ts` | controller | **client** (`StarterPlayerScripts`) |
+| `hud.tsx` / `button.component.tsx` | UI | **client** |
+| `player.ts`, `dmg.const.ts`, `net.remote.ts` | anything else | **shared** (`ReplicatedStorage`) |
+
+Two rules to remember: **`service` → server, `controller`/`component`/`.tsx` → client, everything else → shared.**
+
+Two explicit escapes you touch rarely:
+- **Entry points that _run_** → `main.server.ts` / `main.client.ts` (these become Script / LocalScript).
+- **A whole folder at once** → drop an empty `.server` / `.client` / `.shared` **marker** file in it (great for `ui/` or vendored libraries).
+
+Organize by feature, and Rotree mirrors it into the tree:
+
+```
+src/
+  main.server.ts               →  ServerScriptService/main
+  main.client.ts               →  StarterPlayerScripts/main
+  modules/player/
+    player.service.ts          →  ServerScriptService/modules/player/player.service
+    player-data.ts             →  ReplicatedStorage/modules/player/player-data
+  ui/
+    .client                       (marker: everything under ui/ is client)
+    app.tsx                    →  StarterPlayerScripts/ui/app
+  vendor/
+    .server                       (marker: server-only library)
+    profile-store.luau         →  ServerScriptService/vendor/profile-store
+```
+
+> **Why not `.server.ts` for a service?** In roblox-ts, `.server.ts`/`.client.ts` compile to a **Script/LocalScript** (an entry point that runs) — you can't `import` from them. Role suffixes like `.service` keep the file a **ModuleScript**, so it routes to the server *and* stays importable. Use `.server`/`.client` only for the handful of entry points that bootstrap the game.
+
+**Precedence** (most specific wins): file affix → marker file → folder name → `.tsx` default → shared.
+
+## Configuration (`.rotree.json`)
+
+`rotree --init` generates a starting config. Everything is optional — the convention works out of the box.
 
 ```json
 {
 	"source": ["src"],
-	"keepRouteNames": false,
-	"luau": { 
-		"output": "default.project.json", 
-		"build": "src"
-	},
-	"ts": { 
-		"output": "default.project.json", 
-		"build": "out"
-	},
-	"darklua": { 
-		"output": "build.project.json", 
-		"build": "dist" 
-	},
+	"jsx": "client",
+	"ts": { "output": "default.project.json", "build": "out" },
+	"luau": { "output": "default.project.json", "build": "src" },
 	"aliases": {
-		"Controller": "StarterPlayerScripts",
-		"Service": "ServerScriptService"
+		"repository": "ServerScriptService"
 	},
 	"template": {
-		"name": "roblox-project",
-		"globIgnorePaths": [
-			"**/package.json",
-			"**/tsconfig.json"
-		],
-		"tree": {
-			"$className": "DataModel",
-			"ServerScriptService": {
-				"ServerPackages": {
-					"$path": "ServerPackages"
-				}
-			},
-			"ReplicatedStorage": {
-				"rbxts_include": {
-					"$path": "include",
-					"node_modules": { 
-						"$className": "Folder", 
-						"@rbxts": { 
-							"$path": "node_modules/@rbxts" 
-						}
-					}
-				},
-				"Packages": {
-					"$path": "Packages"
-				}
-			}
-		}
+		"name": "my-game",
+		"tree": { "$className": "DataModel" }
 	}
 }
 ```
 
-| Property            | Description                                                                                                                                                                                                                                                         |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| source              | The root directory (String) or directories (Array of Strings) where your source code lives (defaults to "src"). Passing an array allows you to merge multiple source folders into a single tree.                                                                                                                                                                                    |
-| luau / ts / darklua  | Mode-specific overrides. Rotree uses these to dictate where the compiled code ends up (build) and the name of the generated Rojo file (output)                                                                                                                       |
-| <custom_mode>  | You can define your own custom pipeline modes (e.g., "lute") by adding a new key. Custom modes must include an output and a build value.                                                                                                                       |
-| template            | The base Rojo tree template. Any standard Rojo `default.project.json` fields (like `name`, `globIgnorePaths`, or a custom `tree`) placed here will be safely merged with Rotree's auto-generated paths. You can also specify a path to a JSON file with a Rojo tree! |
-| aliases             | An object allowing you to define custom suffix or folder routing mappings. You can use this to register new keywords (e.g., "Controller": "StarterPlayerScripts") or overwrite Rotree's default service routing behaviors.                                           |
-| keepRouteNames        | A boolean flag (defaults to false). When set to true, Rotree will preserve your routing suffixes in the script names instead of stripping them out.                                                                                                                  |
+| Field | Description |
+| --- | --- |
+| `source` | Source directory, or an array of them to merge multiple places into one tree. Defaults to `["src"]`. |
+| `jsx` | Realm that unrouted `.tsx`/`.jsx` files default to. Defaults to `"client"`. |
+| `ts` / `luau` / `darklua` | Mode overrides — where compiled code lands (`build`) and the generated file name (`output`). Auto-detected from `tsconfig.json` / `.darklua.json`. |
+| `aliases` | Register your own role suffixes → services (e.g. `"repository": "ServerScriptService"`). `service`, `controller`, and `component` are built in. |
+| `template` | Base Rojo tree merged with Rotree's generated paths — services with properties, `rbxts_include`, package folders, etc. Can also be a path to a JSON file. |
+| `keepRouteNames` | Keep structural realm keywords in node names instead of stripping them (`main.server` → `main`). Defaults to `false`. |
 
-### 3. CLI Usage
-You can run Rotree with optional arguments to cleanly override your configurations on the fly:
+## CLI
 
-- `-h, --help:` Show this help menu containing all available options.
-
-- `-i, --init:` Generate a default .rotree.json config file.
-
-- `-c, --config <path>`: Specify a custom Rotree config file path.
-
-- `-m, --mode <mode>`: Specify the mode to run (luau, ts, darklua, or custom mode). If omitted, Rotree automatically detects your project configuration (via tsconfig.json or .darklua.json) and runs the appropriate target(s).
-
-- `-s, --source <path>`: Override the directory containing your raw, uncompiled code. Can be passed multiple times (e.g., -s src/core -s src/hub) to merge multiple directories.
-
-- `-t, --template <path>`: Specify a path to a JSON file that contains your base Rojo blueprint. If omitted, Rotree defaults to the inline object or file mapped in your .rotree.json.
-
-- `-b, --build <path>`: Override the directory where your compiled/transpiled code lands.
-
-- `-o, --output <path>`: Override the name and destination of the final generated Rojo .project.json file.
-
-- `-k, --keepRouteNames`: Do not strip routing prefixes or suffixes (e.g., server, client) from names.
-
-- `-w, --watch`: Watch the source directory for changes, automatically regenerating your project files.
-
-As an example, it is possible to pass a specific configuration file, run a custom mode, inject a base template, and force a targeted output file all at the same time:
-```bash
-rotree -c build.rotree.json -m darklua -t base.template.json -o build.project.json
-```
-
-### 4. Commands
-
-#### For luau
-To make Rotree run and watch your files automatically, use the following command:
-```bash
-rotree -w
-```
-
-#### For roblox-ts
-Because there is an extra step in the compilation process, it is recommended to install `concurrently` for concurrent execution. That way, you only need to use a single command to set everything up:
-```bash
-npm install -D concurrently
-```
-Then, update your package.json script:
-```json
-"scripts": {
-	"watch": "concurrently \"rotree -w\" \"rbxtsc -w\""
-},
-```
-And simply run the script:
-```bash
-npm run watch
-```
+| Flag | Description |
+| --- | --- |
+| `-w, --watch` | Regenerate on file changes |
+| `-i, --init` | Write a default `.rotree.json` |
+| `-m, --mode <mode>` | `luau` \| `ts` \| `darklua` \| custom (auto-detected if omitted) |
+| `-s, --source <path>` | Override source dir (repeatable to merge) |
+| `-o, --output <path>` | Override the generated project file |
+| `-b, --build <path>` | Override where compiled code lands |
+| `-t, --template <path>` | Path to a base Rojo tree JSON |
+| `-j, --jsx <realm>` | Realm for `.tsx`/`.jsx` (default `client`) |
+| `-k, --keepRouteNames` | Don't strip realm keywords from names |
+| `-c, --config <path>` | Custom config file path |
 
 ## Credits
 
-Rotree is a fork of [rogen](https://github.com/LDGerrits/rogen) by [LDGerrits](https://github.com/LDGerrits), used under the MIT license. Huge thanks to the original author for the feature-based routing foundation.
+Rotree is a fork of [rogen](https://github.com/LDGerrits/rogen) by [LDGerrits](https://github.com/LDGerrits), used under the MIT license. Thanks to the original author for the feature-based routing foundation.
 
 ## License
 
